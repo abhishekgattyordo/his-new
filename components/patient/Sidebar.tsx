@@ -1,0 +1,383 @@
+// components/Sidebar.tsx
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  HealthAndSafety,
+  Dashboard,
+  CalendarMonth,
+  FolderShared,
+  Medication,
+  Chat,
+  ReceiptLong,
+  Settings,
+  Person,
+  CreditCard,
+  ChevronLeft,
+  ChevronRight,
+  Logout,
+  EventNote,
+  QuestionAnswer,
+} from '@mui/icons-material';
+
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
+  // ✅ CORRECT PATIENT NAVIGATION – based on your actual pages
+  const navItems = [
+    {
+      icon: Dashboard,
+      label: 'Dashboard',
+      href: '/patient/dashboard',
+      color: 'from-green-500 to-green-700',
+      iconColor: 'text-green-600',
+    },
+    // {
+    //   icon: CalendarMonth,
+    //   label: 'Appointments',
+    //   href: '/patient/appointments',
+    //   badge: 2,
+    //   color: 'from-emerald-500 to-emerald-700',
+    //   iconColor: 'text-emerald-600',
+    // },
+    {
+      icon: FolderShared,
+      label: 'Medical Records',
+      href: '/patient/medical-records',
+      badge: 3,
+      color: 'from-green-500 to-green-700',
+      iconColor: 'text-green-600',
+    },
+    {
+      icon: Medication,
+      label: 'Prescriptions',
+      href: '/patient/prescriptions',
+      color: 'from-emerald-500 to-emerald-700',
+      iconColor: 'text-emerald-600',
+    },
+    {
+      icon: ReceiptLong,
+      label: 'Billing',
+      href: '/patient/billing',
+      color: 'from-green-500 to-green-700',
+      iconColor: 'text-green-600',
+    },
+    {
+      icon: EventNote,
+      label: 'Admission Summary',
+      href: '/patient/admission-summary',
+      color: 'from-green-500 to-green-700',
+      iconColor: 'text-green-600',
+    },
+  ];
+
+  const settingsItems = [
+    // {
+    //   icon: Settings,
+    //   label: 'Settings',
+    //   href: '/patient/settings',
+    //   color: 'from-gray-500 to-gray-700',
+    //   iconColor: 'text-gray-600',
+    // },
+    {
+      icon: Person,
+      label: 'Profile',
+      href: '/patient/patient-profile',
+      color: 'from-gray-500 to-gray-700',
+      iconColor: 'text-gray-600',
+    },
+  ];
+
+  // ✅ PATIENT‑FRIENDLY QUICK ACTIONS
+  const quickAccessItems = [
+    {
+      icon: CalendarMonth,
+      label: 'Book Appointment',
+      href: '/appointments',
+      iconBg: 'bg-green-50 dark:bg-green-900/30',
+      iconColor: 'text-green-600 dark:text-green-400',
+    },
+   
+  ];
+
+  const handleLinkClick = () => {
+    if (window.innerWidth < 1024) onClose();
+  };
+
+  const isActive = (href: string) => {
+    return pathname === href || pathname?.startsWith(href + '/');
+  };
+
+  const handleLogout = () => {
+    console.log('Logout clicked');
+    // Add your logout logic here
+  };
+
+  return (
+    <aside
+      className={`${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0 fixed lg:sticky top-0 z-40 ${
+        isCollapsed ? 'w-20' : 'w-80'
+      } flex-shrink-0 border-r border-green-200 dark:border-green-900 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ease-out shadow-xl lg:shadow-none h-screen`}
+    >
+      {/* Mobile close button */}
+      <button
+        className="lg:hidden absolute top-6 right-6 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        onClick={onClose}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      {/* Logo Section – now "Patient Portal" with green gradient */}
+      <div
+        className={`p-6 flex items-center ${
+          isCollapsed ? 'justify-center' : 'justify-between'
+        } border-b border-green-200 dark:border-green-900 relative`}
+      >
+        {!isCollapsed ? (
+          <Link href="/patient/dashboard" className="flex items-center gap-4" onClick={handleLinkClick}>
+            <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <HealthAndSafety className="text-2xl" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Patient Portal</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 tracking-wide">Your Health Partner</p>
+            </div>
+          </Link>
+        ) : (
+          <Link href="/patient/dashboard" className="flex items-center justify-center" onClick={handleLinkClick}>
+            <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <HealthAndSafety className="text-2xl" />
+            </div>
+          </Link>
+        )}
+
+        {/* Collapse button – green theme */}
+<button
+  onClick={toggleCollapse}
+  className={`hidden lg:flex items-center justify-center w-8 h-8 rounded-lg 
+    border border-green-500 dark:border-green-400
+    hover:bg-green-50 dark:hover:bg-green-900/20 
+    transition-colors
+    z-40
+    ${
+      isCollapsed
+        ? "absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-900 shadow-sm"
+        : ""
+    }`}
+  title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+>
+  {isCollapsed ? (
+    <ChevronRight className="text-green-600 dark:text-green-400 text-lg" />
+  ) : (
+    <ChevronLeft className="text-green-600 dark:text-green-400 text-lg" />
+  )}
+</button>
+
+
+      </div>
+
+      {/* Scrollable navigation */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <nav className="flex-1 overflow-y-auto px-4 py-8">
+          {/* Main Navigation */}
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 mb-3">
+                Patient Menu
+              </p>
+            )}
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className={`flex items-center ${
+                      isCollapsed ? 'justify-center' : 'justify-between gap-4'
+                    } px-4 py-3 rounded-xl transition-all group relative ${
+                      active
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-800/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20'
+                    }`}
+                    title={isCollapsed ? item.label : ''}
+                  >
+                    <div className={`flex items-center ${isCollapsed ? '' : 'gap-4'}`}>
+                      <div
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg ${
+                          active
+                            ? 'bg-green-600 text-white'
+                            : `bg-gradient-to-br ${item.color} text-white`
+                        }`}
+                      >
+                        <item.icon className="text-lg" />
+                      </div>
+                      {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                    </div>
+                    {!isCollapsed && item.badge && (
+                      <span
+                        className={`text-xs font-bold px-2 py-1 rounded-full ${
+                          active
+                            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                    {isCollapsed && item.badge && (
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Account Settings */}
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 mb-3">
+                Account
+              </p>
+            )}
+            <div className="space-y-1">
+              {settingsItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className={`flex items-center ${
+                      isCollapsed ? 'justify-center' : 'justify-between gap-4'
+                    } px-4 py-3 rounded-xl transition-all group relative ${
+                      active
+                        ? 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/30 dark:to-gray-700/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20'
+                    }`}
+                    title={isCollapsed ? item.label : ''}
+                  >
+                    <div className={`flex items-center ${isCollapsed ? '' : 'gap-4'}`}>
+                      <div
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg ${
+                          active ? 'bg-gray-500 text-white' : `bg-gradient-to-br ${item.color} text-white`
+                        }`}
+                      >
+                        <item.icon className="text-lg" />
+                      </div>
+                      {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          {!isCollapsed && (
+            <div className="pt-4">
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 mb-3">
+                Quick Actions
+              </p>
+              <div className="space-y-1">
+                {quickAccessItems.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors group"
+                  >
+                    <div
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg ${item.iconBg} ${item.iconColor} group-hover:scale-105 transition-transform`}
+                    >
+                      <item.icon className="text-lg" />
+                    </div>
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isCollapsed && (
+            <div className="pt-4 space-y-1">
+              {quickAccessItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={handleLinkClick}
+                  className="flex items-center justify-center px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors group relative"
+                  title={item.label}
+                >
+                  <div
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg ${item.iconBg} ${item.iconColor} group-hover:scale-105 transition-transform`}
+                  >
+                    <item.icon className="text-lg" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </nav>
+
+        {/* User Profile – patient information */}
+        <div className="mt-auto border-t border-green-200 dark:border-green-900 bg-white dark:bg-gray-900">
+          <div className="p-4">
+            <div
+              className={`flex items-center ${
+                isCollapsed ? 'justify-center' : 'gap-3'
+              } p-3 bg-green-50 dark:bg-green-900/20 rounded-xl hover:bg-green-100 dark:hover:bg-green-800/30 transition-colors cursor-pointer group`}
+              onClick={handleLinkClick}
+              title={isCollapsed ? 'John Doe - Patient' : ''}
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white font-semibold text-sm">
+                JD
+              </div>
+              {!isCollapsed && (
+                <>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">John Doe</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Patient ID: #P-12345</p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLogout();
+                    }}
+                    className="p-1.5 rounded-lg bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/30 group-hover:bg-green-100 dark:group-hover:bg-green-800/30 transition-colors"
+                    title="Logout"
+                  >
+                    <Logout className="text-gray-400 text-sm hover:text-red-500 dark:hover:text-red-400" />
+                  </button>
+                </>
+              )}
+            </div>
+            {!isCollapsed && (
+              <div className="mt-3 px-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500">Patient Portal v1.0.0</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}

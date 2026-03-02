@@ -1,0 +1,316 @@
+// import { NextResponse } from "next/server";
+
+// const users = [
+//   {
+//     id: 1,
+//     email: "patient@gmail.com",
+//     password: "text123",
+//     role: "patient",
+//     name: "John Doe",
+//   },
+//   {
+//     id: 2,
+//     email: "doctor@example.com",
+//     password: "doctor456",
+//     role: "doctor",
+//     name: "Jane Smith",
+//   },
+//   {
+//     id: 3,
+//     email: "admin@gmail.com",
+//     password: "text123",
+//     role: "admin",
+//     name: "Admin User",
+//   },
+//   {
+//     id: 4,
+//     email: "helpdesk@hospital.com",
+//     password: "help123",
+//     role: "helpdesk",
+//     name: "Admin User",
+//   },
+//   {
+//   id: 5,
+//   email: "pharmacy@gmail.com",
+//   password: "text123",
+//   role: "pharmacy",
+//   name: "Pharmacy Admin",
+// }
+
+// ];
+
+// export async function POST(req: Request) {
+//   const { email, password } = await req.json();
+
+//   if (!email || !password) {
+//     return NextResponse.json(
+//       { message: "Email and password required" },
+//       { status: 400 }
+//     );
+//   }
+
+//   const user = users.find(
+//     (u) => u.email === email && u.password === password
+//   );
+
+//   if (!user) {
+//     return NextResponse.json(
+//       { message: "Invalid email or password" },
+//       { status: 401 }
+//     );
+//   }
+
+ 
+//   return NextResponse.json({
+//     message: "Login successful",
+//     user: {
+//       id: user.id,
+//       email: user.email,
+//       role: user.role,
+//       name: user.name,
+//     },
+//   });
+// }
+
+
+
+
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '../../../lib/db';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+// ==================== INTERFACES ====================
+
+interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+interface User {
+  id: number;
+  email: string;
+  password: string;
+  full_name_en: string;
+  role: string;
+  patient_id?: string;
+  created_at: Date;
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Generate JWT token
+ */
+function generateToken(user: Partial<User>): string {
+  const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+  
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      patientId: user.patient_id
+    },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+/**
+ * Validate login input
+ */
+function validateInput(data: any): { isValid: boolean; errors: { email?: string; password?: string } } {
+  const errors: { email?: string; password?: string } = {};
+
+  if (!data.email?.trim()) {
+    errors.email = "Email or Patient ID is required";
+  }
+
+  if (!data.password) {
+    errors.password = "Password is required";
+  } else if (data.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+
+// ==================== POST ENDPOINT ====================
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { email, password } = body as LoginPayload;
+
+    // Validate input
+    const validation = validateInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Validation failed", 
+          errors: validation.errors 
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🔍 Login attempt for: ${email}`);
+
+    // Determine if input is email or patient ID
+    const isEmail = email.includes('@');
+    
+    let userResult;
+    
+    if (isEmail) {
+      // Search by email
+      userResult = await query(
+        'SELECT id, email, password, full_name_en, role, patient_id, created_at FROM users WHERE email = $1',
+        [email.toLowerCase()]
+      );
+    } else {
+      // Search by patient ID (for patients)
+      userResult = await query(
+        'SELECT id, email, password, full_name_en, role, patient_id, created_at FROM users WHERE patient_id = $1',
+        [email]
+      );
+    }
+
+    const users = userResult.rows;
+
+    if (users.length === 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Invalid email/patient ID or password" 
+        },
+        { status: 401 }
+      );
+    }
+
+    const user = users[0];
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Invalid email/patient ID or password" 
+        },
+        { status: 401 }
+      );
+    }
+
+    // Generate JWT token
+    const token = generateToken(user);
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
+    // Set cookie for authentication
+    const response = NextResponse.json({
+      success: true,
+      message: "Login successful",
+      user: userWithoutPassword,
+      token // Send token for client-side storage if needed
+    });
+
+    // Set HTTP-only cookie
+    response.cookies.set({
+      name: 'token',
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    // Set user info cookie (non-httpOnly for client access)
+    response.cookies.set({
+      name: 'user',
+      value: JSON.stringify(userWithoutPassword),
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    console.log(`✅ Login successful for user: ${user.email} (role: ${user.role})`);
+
+    return response;
+
+  } catch (error) {
+    console.error("❌ Login error:", error);
+    
+    return NextResponse.json(
+      {
+        success: false,
+        message: "An error occurred during login. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// ==================== GET ENDPOINT (Check current user) ====================
+
+export async function GET(req: NextRequest) {
+  try {
+    const token = req.cookies.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      
+      // Get fresh user data
+      const userResult = await query(
+        'SELECT id, email, full_name_en, role, patient_id, created_at FROM users WHERE id = $1',
+        [decoded.id]
+      );
+
+      if (userResult.rows.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: userResult.rows[0]
+      });
+
+    } catch (err) {
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
+  } catch (error) {
+    console.error("❌ Error fetching user:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "An error occurred",
+      },
+      { status: 500 }
+    );
+  }
+}
