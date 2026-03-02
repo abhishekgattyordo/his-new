@@ -2320,7 +2320,7 @@ const handleUpdateBedStatus = async (bedId: number, status: BedStatus) => {
               <Dialog open={isEditFloorOpen} onOpenChange={setIsEditFloorOpen}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit Floor</DialogTitle>
+                    <DialogTitle>Edit Floor </DialogTitle>
                   </DialogHeader>
                   {editingFloor && (
                     <div className="space-y-4 py-4">
