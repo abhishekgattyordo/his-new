@@ -1103,7 +1103,7 @@ export default function AppointmentBookingPage() {
           <option value="recommended">Recommended </option>
           <option value="rating">Highest Rated</option>
           <option value="experience">Most Experienced</option>
-          <option value="price-low">Price: Low to High</option>
+          <option value="price-low">Price: Low to High </option>
           <option value="price-high">Price: High to Low</option>
         </select>
       </div>
