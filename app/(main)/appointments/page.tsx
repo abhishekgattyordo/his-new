@@ -1100,7 +1100,7 @@ export default function AppointmentBookingPage() {
           onChange={(e) => setSortBy(e.target.value as SortOption)}
           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
         >
-          <option value="recommended">Recommended</option>
+          <option value="recommended">Recommended </option>
           <option value="rating">Highest Rated</option>
           <option value="experience">Most Experienced</option>
           <option value="price-low">Price: Low to High</option>
