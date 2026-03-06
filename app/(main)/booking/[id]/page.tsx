@@ -181,7 +181,7 @@ function BookingPageContent() {
     }
   }, [doctorId]);
 
-  // Fetch available slots when doctor or selected date changes
+  // Fetch available slots when doctor or selected date changessssss
   useEffect(() => {
     const fetchSlots = async () => {
       if (!doctor || !appointmentData.selectedDate) return;
