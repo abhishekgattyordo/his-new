@@ -465,7 +465,7 @@ export async function GET(req: NextRequest) {
     const queryStr = `
       SELECT 
         jsonb_build_object(
-          'patient_id', p.patient_id,
+          'patient_id', p.patient_id::text,
           'full_name_en', p.full_name_en,
           'full_name_hi', p.full_name_hi,
           'dob', p.dob,

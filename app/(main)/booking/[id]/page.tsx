@@ -3,10 +3,10 @@
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image"; // ✅ Import Image from next/image
 import { cn } from "@/lib/utils";
 import Header from "@/components/ui/Header";
 import { ArrowLeft } from "lucide-react";
-import { Briefcase, MapPin } from "lucide-react";
 import toast from "react-hot-toast";
 
 import {
@@ -16,129 +16,10 @@ import {
   ChevronRight,
   Star,
   Clock,
-  GraduationCap,
-  Languages,
 } from "lucide-react";
+import { doctorsApi } from "@/lib/api/doctors";
 
-
-// TypeScript interfaces
-interface Doctor {
-  id: string;
-  name: string;
-  specialty: string;
-  rating: number;
-  reviews: number;
-  experience: string;
-  image: string;
-  fees: string;
-  education: string[];
-  languages: string[];
-  availability: {
-    morning: string[];
-    afternoon: string[];
-    evening: string[];
-  };
-  isOnline?: boolean;
-  isVerified?: boolean;
-}
-
-interface AppointmentData {
-  consultationType: "in-person" | "teleconsultation";
-  selectedDate: string;
-  selectedTime: string;
-  notes?: string;
-  paymentMethod?: string;
-}
-
-interface CalendarDay {
-  day: number;
-  month: "current" | "previous" | "next";
-  available: boolean;
-  selected: boolean;
-}
-
-// Add Verified icon component
-const Verified = ({ className }: { className?: string }) => (
-  <svg className={className} fill="currentColor" viewBox="0 0 20 20">
-    <path
-      fillRule="evenodd"
-      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
-
-// Mock API function
-const fetchDoctorData = async (doctorId: string): Promise<Doctor> => {
-  const doctors: Doctor[] = [
-    {
-      id: "sarah",
-      name: "Dr. Sarah Smith",
-      specialty: "Senior Cardiologist",
-      rating: 4.9,
-      reviews: 128,
-      experience: "15+ years",
-      image:
-        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      fees: "₹800",
-      education: ["MD Cardiology", "MBBS, AIIMS Delhi"],
-      languages: ["English", "Hindi", "Bengali"],
-      availability: {
-        morning: ["09:00 AM", "10:00 AM", "11:00 AM"],
-        afternoon: ["02:00 PM", "03:00 PM", "04:00 PM"],
-        evening: ["06:00 PM", "07:00 PM"],
-      },
-      isOnline: true,
-      isVerified: true,
-    },
-    {
-      id: "john",
-      name: "Dr. John Doe",
-      specialty: "Dermatologist",
-      rating: 4.7,
-      reviews: 95,
-      experience: "12 years",
-      image:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      fees: "₹700",
-      education: ["MD Dermatology", "MBBS"],
-      languages: ["English", "Hindi"],
-      availability: {
-        morning: ["09:00 AM", "10:30 AM", "11:00 AM"],
-        afternoon: ["02:00 PM", "03:30 PM", "04:00 PM"],
-        evening: ["06:00 PM", "07:30 PM"],
-      },
-      isOnline: false,
-      isVerified: true,
-    },
-     {
-      id: "robert",
-      name: "Dr. Robert Kim",
-      specialty: "Dermatologist",
-      rating: 4.7,
-      reviews: 95,
-      experience: "12 years",
-      image:
-        "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
-      fees: "₹700",
-      education: ["MD Dermatology", "MBBS"],
-      languages: ["English", "Hindi"],
-      availability: {
-        morning: ["09:00 AM", "10:30 AM", "11:00 AM"],
-        afternoon: ["02:00 PM", "03:30 PM", "04:00 PM"],
-        evening: ["06:00 PM", "07:30 PM"],
-      },
-      isOnline: false,
-      isVerified: true,
-    },
-    
-  ];
-
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  const doctor = doctors.find((d) => d.id === doctorId);
-  if (!doctor) throw new Error(`Doctor with ID ${doctorId} not found`);
-  return doctor;
-};
+// ... (interfaces remain the same) ...
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -181,7 +62,7 @@ const ErrorDisplay = ({ message }: { message: string }) => (
         </h2>
         <p className="text-slate-600 dark:text-slate-400 mb-6">{message}</p>
         <Link
-          href="/appointments"
+          href="/doctor-selection"
           className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white hover:bg-green-600 transition"
         >
           <svg
@@ -234,11 +115,13 @@ function BookingPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [appointmentData, setAppointmentData] = useState<AppointmentData>({
     consultationType: "teleconsultation",
     selectedDate: new Date().toISOString().split("T")[0],
-    selectedTime: "10:00 AM",
+    selectedTime: "",
     notes: "",
     paymentMethod: "card",
   });
@@ -248,36 +131,105 @@ function BookingPageContent() {
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const dates = generateDates();
-
-  // Initialize with current month
   const currentMonthName = new Date().toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
 
+  // Fetch doctor details using doctorsApi
   useEffect(() => {
     const loadDoctorData = async () => {
       setIsLoading(true);
       setError(null);
+
       try {
-        const doctorData = await fetchDoctorData(doctorId);
+        const response = await doctorsApi.getDoctor(Number(doctorId));
+
+        console.log("Doctor API response:", response.data);
+
+        const doc = response.data.data || response.data;
+
+        const doctorData: Doctor = {
+          id: doc.id.toString(),
+          name: `Dr. ${doc.firstName} ${doc.lastName}`,
+          specialty: doc.specialty || "General",
+          rating: doc.rating || 4.5,
+          reviews: 0,
+          experience: doc.experience ? `${doc.experience} years` : "N/A",
+          image: doc.avatar
+            ? `http://localhost:000${doc.avatar}`
+            : "/default-doctor.jpg",
+          fees: doc.fee ? `₹${doc.fee}` : "₹500",
+          education: doc.qualifications || [],
+          languages: [],
+          availability: { morning: [], afternoon: [], evening: [] },
+          isOnline: true,
+          isVerified: true,
+        };
+
         setDoctor(doctorData);
-        // Set initial time from doctor's availability
-        setAppointmentData((prev) => ({
-          ...prev,
-          selectedTime: doctorData.availability.morning[0] || "10:00 AM",
-        }));
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load doctor data",
-        );
         console.error("Error loading doctor data:", err);
+        setError("Failed to load doctor data");
       } finally {
         setIsLoading(false);
       }
     };
-    loadDoctorData();
+
+    if (doctorId) {
+      loadDoctorData();
+    }
   }, [doctorId]);
+
+  // Fetch available slots when doctor or selected date changes
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (!doctor || !appointmentData.selectedDate) return;
+      setLoadingSlots(true);
+      try {
+        const res = await fetch(
+          `/api/doctors/${doctorId}/slots?date=${appointmentData.selectedDate}`
+        );
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Slots API error:", res.status, errorText);
+          setAvailableSlots([]);
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.success && Array.isArray(data.slots)) {
+          setAvailableSlots(data.slots);
+          if (data.slots.length > 0) {
+            if (
+              !appointmentData.selectedTime ||
+              !data.slots.includes(appointmentData.selectedTime)
+            ) {
+              setAppointmentData((prev) => ({
+                ...prev,
+                selectedTime: data.slots[0],
+              }));
+            }
+          } else {
+            setAppointmentData((prev) => ({ ...prev, selectedTime: "" }));
+          }
+        } else {
+          console.warn("Unexpected slots response:", data);
+          setAvailableSlots([]);
+          setAppointmentData((prev) => ({ ...prev, selectedTime: "" }));
+        }
+      } catch (error) {
+        console.error("Error fetching slots:", error);
+        toast.error("Failed to load available slots");
+        setAvailableSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+    fetchSlots();
+  }, [doctor, appointmentData.selectedDate, doctorId]);
 
   // Generate calendar days for full calendar view
   useEffect(() => {
@@ -292,7 +244,6 @@ function BookingPageContent() {
       const prevMonthLastDay = new Date(year, month, 0).getDate();
       const days: CalendarDay[] = [];
 
-      // Previous month days
       for (let i = firstDayIndex - 1; i >= 0; i--) {
         days.push({
           day: prevMonthLastDay - i,
@@ -302,14 +253,10 @@ function BookingPageContent() {
         });
       }
 
-      // Current month days
       const today = new Date();
       for (let i = 1; i <= daysInMonth; i++) {
-        const isToday =
-          today.getDate() === i &&
-          today.getMonth() === month &&
-          today.getFullYear() === year;
-        const isPast = new Date(year, month, i) < new Date();
+        const isPast =
+          new Date(year, month, i) < new Date(new Date().setHours(0, 0, 0, 0));
         const isSelectedDate =
           appointmentData.selectedDate ===
           new Date(year, month, i).toISOString().split("T")[0];
@@ -322,7 +269,6 @@ function BookingPageContent() {
         });
       }
 
-      // Next month days
       const totalCells = 42;
       const nextDays = totalCells - days.length;
       for (let i = 1; i <= nextDays; i++) {
@@ -341,14 +287,13 @@ function BookingPageContent() {
 
   const updateAppointmentData = <K extends keyof AppointmentData>(
     key: K,
-    value: AppointmentData[K],
+    value: AppointmentData[K]
   ) => {
     setAppointmentData((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleDateSelect = (fullDate: string) => {
     updateAppointmentData("selectedDate", fullDate);
-    // Auto-close full calendar when date is selected
     setShowFullCalendar(false);
   };
 
@@ -374,26 +319,46 @@ function BookingPageContent() {
     setCurrentMonth(newMonth);
   };
 
-  
- const handleConfirmAppointment = async () => {
+  const handleConfirmAppointment = async () => {
     if (!doctor) return;
 
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
-    console.log("User data:", user);
-    console.log("User ID:", user?.id);
-
     if (!user?.id) {
       toast.error("Please login first");
+      router.push("/login");
+      return;
+    }
+
+    if (!appointmentData.selectedTime) {
+      toast.error("Please select a time slot");
       return;
     }
 
     setIsBooking(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const appointmentPayload = {
+        doctor_id: doctor.id,
+        patient_id: user.id,
+        appointment_date: appointmentData.selectedDate,
+        appointment_time: appointmentData.selectedTime,
+        consultation_type: appointmentData.consultationType,
+        notes: appointmentData.notes || "",
+      };
 
-      // Store appointment data in localStorage for the summary page
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appointmentPayload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to book appointment");
+      }
+
       const appointmentSummary = {
         doctorId: doctor.id,
         doctorName: doctor.name,
@@ -405,39 +370,31 @@ function BookingPageContent() {
         notes: appointmentData.notes || "",
         fees: doctor.fees,
         patientName: user.name || "Patient",
-        bookingId: `APT-${Date.now()}`,
+        bookingId: data.data?.id || `APT-${Date.now()}`,
         bookedOn: new Date().toISOString(),
       };
 
-      localStorage.setItem("appointmentSummary", JSON.stringify(appointmentSummary));
-
-      // Navigate to summary page instead of directly to confirmation
+      localStorage.setItem(
+        "appointmentSummary",
+        JSON.stringify(appointmentSummary)
+      );
       router.push(`/booking/confirmation/${doctor.id}`);
     } catch (error) {
       console.error("Error confirming appointment:", error);
-      toast.error("Failed to book appointment. Please try again.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to book appointment"
+      );
     } finally {
       setIsBooking(false);
     }
   };
 
-
-
-  // Function to navigate to doctor profile
   const navigateToDoctorProfile = () => {
     router.push(`/doctors/${doctorId}`);
   };
 
   if (isLoading && !doctor) return <LoadingSpinner />;
-  if (error || !doctor)
-    return <ErrorDisplay message={error || "Doctor not found"} />;
-
-  // Get all time slots from doctor's availability
-  const allTimeSlots = [
-    ...doctor.availability.morning,
-    ...doctor.availability.afternoon,
-    ...doctor.availability.evening,
-  ];
+  if (error || !doctor) return <ErrorDisplay message={error || "Doctor not found"} />;
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
@@ -445,54 +402,43 @@ function BookingPageContent() {
 
       <div className="flex flex-col">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Page Header */}
-        <div className="mb-8">
-  <div className="flex items-center gap-3">
-    {/* Back Icon */}
-    <button
-      onClick={() => router.back()}
-      className="p-2 rounded-full hover:bg-green-50 dark:hover:bg-slate-700 transition-colors"
-      aria-label="Go back"
-    >
-      <ArrowLeft className="w-5 h-5 text-green-600" />
-    </button>
+          <div className="mb-8">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className="p-2 rounded-full hover:bg-green-50 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="w-5 h-5 text-green-600" />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                Book Appointment
+              </h1>
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mt-1 ml-10">
+              Schedule your consultation with {doctor.name}
+            </p>
+          </div>
 
-    {/* Title */}
-    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-      Book Appointment
-    </h1>
-  </div>
-
-  <p className="text-slate-600 dark:text-slate-400 mt-1 ml-10">
-    Schedule your consultation with Dr. {doctor.name}
-  </p>
-</div>
-
-
-          {/* Main Content Grid - Adjusted widths */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Left Column - Doctor Info & Appointment Notes - Wider now (3/5) */}
             <div className="lg:col-span-3 space-y-6">
-              {/* Doctor Card - Clickable for profile */}
               <div
                 onClick={navigateToDoctorProfile}
                 className="group bg-white border-l-4 border-green-500 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer p-4 hover:bg-green-50/30"
               >
                 <div className="flex items-start gap-4">
-                  {/* Doctor Image */}
                   <div className="flex-shrink-0">
                     <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-sm">
-                      <img
+                      <Image
                         src={doctor.image}
                         alt={doctor.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        fill
+                        unoptimized={true}
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                   </div>
-
-                  {/* Doctor Details */}
                   <div className="flex-1">
-                    {/* Name & Specialty */}
                     <div className="mb-3">
                       <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-green-600 transition-colors">
                         {doctor.name}
@@ -501,8 +447,6 @@ function BookingPageContent() {
                         {doctor.specialty}
                       </div>
                     </div>
-
-                    {/* Medical Credentials */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-[15px]">
                         <svg
@@ -518,11 +462,8 @@ function BookingPageContent() {
                             d="M12 14l9-5-9-5-9 5 9 5z"
                           />
                         </svg>
-                        <span className="text-slate-700">
-                          {doctor.education[0]}
-                        </span>
+                        <span className="text-slate-700">{doctor.specialty}</span>
                       </div>
-
                       <div className="flex items-center gap-2 text-[15px]">
                         <svg
                           className="w-4 h-4 text-green-500 flex-shrink-0"
@@ -537,13 +478,18 @@ function BookingPageContent() {
                             d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01"
                           />
                         </svg>
-                        <span className="text-slate-700">
-                          {doctor.experience} years experience
+                        <span className="text-slate-700">{doctor.experience}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <span className="text-sm font-medium text-slate-900">
+                          {doctor.rating}
+                        </span>
+                        <span className="text-sm text-slate-500">
+                          ({doctor.reviews} reviews)
                         </span>
                       </div>
                     </div>
-
-                    {/* View Profile CTA */}
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                       <span className="text-[15px] text-slate-600 font-medium">
                         View complete profile
@@ -566,7 +512,6 @@ function BookingPageContent() {
                 </div>
               </div>
 
-              {/* Appointment Notes - Improved mobile spacing */}
               <div className="bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 p-4 md:p-6">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 md:mb-4">
                   Appointment Notes (Optional)
@@ -575,9 +520,7 @@ function BookingPageContent() {
                   placeholder="Add any symptoms, concerns, or questions for the doctor..."
                   className="w-full h-28 md:h-32 p-3 md:p-4 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm md:text-base"
                   value={appointmentData.notes}
-                  onChange={(e) =>
-                    updateAppointmentData("notes", e.target.value)
-                  }
+                  onChange={(e) => updateAppointmentData("notes", e.target.value)}
                 />
                 <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-2">
                   This helps the doctor prepare for your consultation
@@ -585,316 +528,217 @@ function BookingPageContent() {
               </div>
             </div>
 
-            {/* Right Column - Consultation Type, Date, Time & Booking - Narrower (2/5) */}
             <div className="lg:col-span-2 space-y-6">
-       
-              {/* <div className="bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 p-4">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-3">
-                  Consultation Type
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-             
-                  <button
-                    onClick={() =>
-                      updateAppointmentData(
-                        "consultationType",
-                        "teleconsultation",
-                      )
-                    }
-                    className={`p-3 border transition-all duration-200 flex items-start gap-3 ${
-                      appointmentData.consultationType === "teleconsultation"
-                        ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                        : "border-slate-200 dark:border-slate-700 hover:border-green-500/50"
-                    }`}
-                  >
-                    <div
-                      className={`p-2 ${
-                        appointmentData.consultationType === "teleconsultation"
-                          ? "bg-green-500 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-400"
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-
-                    <div className="text-left">
-                      <h4 className="font-medium text-sm text-slate-900 dark:text-white">
-                        Video Consultation
-                      </h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-tight">
-                        Video call from anywhere
-                      </p>
-                    </div>
-                  </button>
-
-                
-                  <button
-                    onClick={() =>
-                      updateAppointmentData("consultationType", "in-person")
-                    }
-                    className={`p-3 border transition-all duration-200 flex items-start gap-3 ${
-                      appointmentData.consultationType === "in-person"
-                        ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                        : "border-slate-200 dark:border-slate-700 hover:border-green-500/50"
-                    }`}
-                  >
-                    <div
-                      className={`p-2 ${
-                        appointmentData.consultationType === "in-person"
-                          ? "bg-green-500 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-400"
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"
-                        />
-                      </svg>
-                    </div>
-
-                    <div className="text-left">
-                      <h4 className="font-medium text-sm text-slate-900 dark:text-white">
-                        Clinic Visit
-                      </h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-tight">
-                        Visit clinic in person
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              </div> */}
-
-              {/* Calendar */}
               <div className="bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-  <div className="flex items-center justify-between mb-6">
-    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-      Choose date and time
-    </h3>
-    <button
-      onClick={() => setShowFullCalendar(!showFullCalendar)}
-      className="flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors cursor-pointer select-none"
-    >
-      <CalendarDays className="w-4 h-4" />
-      <span>
-        {showFullCalendar
-          ? currentMonth.toLocaleDateString("en-US", {
-              month: "long",
-              year: "numeric",
-            })
-          : currentMonthName}
-      </span>
-    </button>
-  </div>
-
-  {/* ================= FULL CALENDAR VIEW ================= */}
-  {showFullCalendar && (
-    <div className="mb-6 border p-4">
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => navigateMonth("prev")}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <span className="text-lg font-semibold text-slate-900 dark:text-white">
-          {currentMonth.toLocaleDateString("en-US", {
-            month: "long",
-            year: "numeric",
-          })}
-        </span>
-        <button
-          onClick={() => navigateMonth("next")}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="w-full">
-        <div className="grid grid-cols-7 mb-3">
-          {weekdays.map((day) => (
-            <div
-              key={day}
-              className={`text-center text-xs font-medium uppercase py-1 ${
-                day === "Sat" || day === "Sun"
-                  ? "text-red-400"
-                  : "text-slate-400"
-              }`}
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-y-1">
-          {calendarDays.map((calendarDay, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                if (
-                  calendarDay.month === "current" &&
-                  calendarDay.available
-                ) {
-                  const date = new Date(
-                    currentMonth.getFullYear(),
-                    currentMonth.getMonth(),
-                    calendarDay.day,
-                  );
-                  const dateStr = date
-                    .toISOString()
-                    .split("T")[0];
-                  handleDateSelect(dateStr);
-                }
-              }}
-              className={`h-10 w-full flex items-center justify-center text-sm transition-colors relative ${
-                calendarDay.month !== "current"
-                  ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                  : !calendarDay.available
-                    ? "text-slate-300 dark:text-slate-600 line-through decoration-slate-400 cursor-not-allowed"
-                    : calendarDay.selected
-                      ? "bg-green-500 text-white font-semibold"
-                      : "text-slate-700 dark:text-slate-300 hover:bg-green-500/10 hover:text-green-500"
-              }`}
-              disabled={
-                !calendarDay.available ||
-                calendarDay.month !== "current"
-              }
-            >
-              {calendarDay.day}
-              {calendarDay.selected && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm border-2 border-white dark:border-slate-800">
-                  <Check className="w-3 h-3 text-white" />
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Choose date and time
+                  </h3>
+                  <button
+                    onClick={() => setShowFullCalendar(!showFullCalendar)}
+                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors cursor-pointer select-none"
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                    <span>
+                      {showFullCalendar
+                        ? currentMonth.toLocaleDateString("en-US", {
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : currentMonthName}
+                    </span>
+                  </button>
                 </div>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )}
 
-  {/* ================= 7-DAY PICKER VIEW ================= */}
-  {!showFullCalendar && (
-    <div className="mb-6">
-      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-        Select Date
-      </h4>
-      <div className="flex gap-3 overflow-x-auto pb-4 ">
-        {dates.map((item) => (
-          <button
-            key={item.fullDate}
-            onClick={() => handleDateSelect(item.fullDate)}
-            className={`min-w-[70px] py-3 text-center border transition-all duration-200 flex flex-col items-center relative rounded-lg
-              ${
-                appointmentData.selectedDate === item.fullDate
-                  ? "bg-green-500 text-white border-green-500 shadow-sm"
-                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-green-200"
-              }
-            `}
-          >
-            {appointmentData.selectedDate === item.fullDate && (
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-800 mt-2">
-                <Check className="w-3.5 h-3.5 text-white" />
+                {showFullCalendar && (
+                  <div className="mb-6 border p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={() => navigateMonth("prev")}
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <span className="text-lg font-semibold text-slate-900 dark:text-white">
+                        {currentMonth.toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <button
+                        onClick={() => navigateMonth("next")}
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="w-full">
+                      <div className="grid grid-cols-7 mb-3">
+                        {weekdays.map((day) => (
+                          <div
+                            key={day}
+                            className={`text-center text-xs font-medium uppercase py-1 ${
+                              day === "Sat" || day === "Sun"
+                                ? "text-red-400"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-y-1">
+                        {calendarDays.map((calendarDay, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              if (
+                                calendarDay.month === "current" &&
+                                calendarDay.available
+                              ) {
+                                const date = new Date(
+                                  currentMonth.getFullYear(),
+                                  currentMonth.getMonth(),
+                                  calendarDay.day
+                                );
+                                const dateStr = date.toISOString().split("T")[0];
+                                handleDateSelect(dateStr);
+                              }
+                            }}
+                            className={`h-10 w-full flex items-center justify-center text-sm transition-colors relative ${
+                              calendarDay.month !== "current"
+                                ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                                : !calendarDay.available
+                                ? "text-slate-300 dark:text-slate-600 line-through decoration-slate-400 cursor-not-allowed"
+                                : calendarDay.selected
+                                ? "bg-green-500 text-white font-semibold"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-green-500/10 hover:text-green-500"
+                            }`}
+                            disabled={
+                              !calendarDay.available || calendarDay.month !== "current"
+                            }
+                          >
+                            {calendarDay.day}
+                            {calendarDay.selected && (
+                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm border-2 border-white dark:border-slate-800">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!showFullCalendar && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                      Select Date
+                    </h4>
+                    <div className="flex gap-3 overflow-x-auto pb-4">
+                      {dates.map((item) => (
+                        <button
+                          key={item.fullDate}
+                          onClick={() => handleDateSelect(item.fullDate)}
+                          className={`min-w-[70px] py-3 text-center border transition-all duration-200 flex flex-col items-center relative rounded-lg ${
+                            appointmentData.selectedDate === item.fullDate
+                              ? "bg-green-500 text-white border-green-500 shadow-sm"
+                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-green-200"
+                          }`}
+                        >
+                          {appointmentData.selectedDate === item.fullDate && (
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-800 mt-2">
+                              <Check className="w-3.5 h-3.5 text-white" />
+                            </div>
+                          )}
+                          <div className="text-xs font-medium">{item.day}</div>
+                          <div className="text-lg font-semibold mt-1">
+                            {item.date}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                    Select Time
+                  </h4>
+                  {loadingSlots ? (
+                    <div className="text-center py-4">
+                      <div className="w-6 h-6 border-2 border-green-500 border-t-transparent animate-spin rounded-full mx-auto"></div>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Loading available slots...
+                      </p>
+                    </div>
+                  ) : availableSlots.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      {availableSlots.map((time) => (
+                        <button
+                          key={time}
+                          onClick={() => handleTimeSelect(time)}
+                          className={`px-4 py-2.5 text-sm border transition-all duration-200 flex items-center justify-center rounded-lg relative ${
+                            appointmentData.selectedTime === time
+                              ? "border-green-500 bg-green-50 text-green-600 font-medium shadow-sm"
+                              : "border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-green-200"
+                          }`}
+                        >
+                          {time}
+                          {appointmentData.selectedTime === time && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center border border-white">
+                              <Check className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-500 py-4">
+                      No slots available for this date
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between bg-green-50 px-5 py-4 border border-green-100 rounded-lg">
+                  <div className="mb-3 sm:mb-0">
+                    <p className="text-sm font-medium text-slate-800">
+                      {appointmentData.selectedTime
+                        ? formatDateDisplay()
+                        : "Select a date and time"}
+                    </p>
+                    {appointmentData.selectedTime && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Time slot confirmed
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleConfirmAppointment}
+                    disabled={isBooking || !appointmentData.selectedTime}
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2.5 rounded-lg transition flex items-center gap-2 min-w-[140px] justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isBooking ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                        Booking...
+                      </>
+                    ) : (
+                      "Book Appointment"
+                    )}
+                  </button>
+                </div>
               </div>
-            )}
-            <div className="text-xs font-medium">{item.day}</div>
-            <div className="text-lg font-semibold mt-1">
-              {item.date}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )}
-
-  {/* Time Slots (always visible) */}
-  <div>
-    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-      Select Time
-    </h4>
-    <div className="grid grid-cols-3 gap-3">
-      {allTimeSlots.map((time) => (
-        <button
-          key={time}
-          onClick={() => handleTimeSelect(time)}
-          className={`px-4 py-2.5 text-sm border transition-all duration-200 flex items-center justify-center rounded-lg relative
-            ${
-              appointmentData.selectedTime === time
-                ? "border-green-500 bg-green-50 text-green-600 font-medium shadow-sm"
-                : "border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-green-200"
-            }
-          `}
-        >
-          {time}
-          {appointmentData.selectedTime === time && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center border border-white">
-              <Check className="w-2.5 h-2.5 text-white" />
-            </div>
-          )}
-        </button>
-      ))}
-    </div>
-  </div>
-
-  {/* Selected Date & Time Summary with Book Button */}
-  <div className="mt-8 flex flex-col sm:flex-row items-center justify-between bg-green-50 px-5 py-4 border border-green-100 rounded-lg">
-    <div className="mb-3 sm:mb-0">
-      <p className="text-sm font-medium text-slate-800">
-        {formatDateDisplay()}
-      </p>
-      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-        <Check className="w-3 h-3" />
-        Time slot confirmed
-      </p>
-    </div>
-    <button
-      onClick={handleConfirmAppointment}
-      disabled={isBooking}
-      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2.5 rounded-lg transition flex items-center gap-2 min-w-[140px] justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-    >
-      {isBooking ? (
-        <>
-          <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
-          Booking...
-        </>
-      ) : (
-        "Book Appointment"
-      )}
-    </button>
-  </div>
-</div>
             </div>
           </div>
         </div>
       </div>
-     
     </div>
   );
 }
 
-// Main component with Suspense
 export default function BookingPage() {
   return (
     <Suspense fallback={<LoadingSpinner />}>

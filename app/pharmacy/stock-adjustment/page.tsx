@@ -1,7 +1,6 @@
-// app/pharmacy/stock-adjustment/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,82 +20,39 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, Menu, X, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Menu, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Sidebar from '@/components/pharmacy/Sidebar';
+import { purchasesApi } from '@/lib/api/purchasesApi';
 
-// Mock Data (move to separate file later)
-const medicines = [
-  {
-    id: "med1",
-    name: "Amoxicillin 500mg",
-    isActive: true,
-  },
-  {
-    id: "med2",
-    name: "Paracetamol 650mg",
-    isActive: true,
-  },
-  {
-    id: "med3",
-    name: "Metformin 500mg",
-    isActive: true,
-  },
-  {
-    id: "med4",
-    name: "Atorvastatin 10mg",
-    isActive: true,
-  },
-  {
-    id: "med5",
-    name: "Clopidogrel 75mg",
-    isActive: false,
-  },
-];
+// Types
+interface Medicine {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
 
-const stockItems = [
-  {
-    id: "stock1",
-    medicineId: "med1",
-    batch: "BATCH-001",
-    expiryDate: "2025-12-31",
-    availableQty: 150,
-  },
-  {
-    id: "stock2",
-    medicineId: "med1",
-    batch: "BATCH-002",
-    expiryDate: "2025-06-30",
-    availableQty: 75,
-  },
-  {
-    id: "stock3",
-    medicineId: "med2",
-    batch: "BATCH-003",
-    expiryDate: "2024-06-15",
-    availableQty: 25,
-  },
-  {
-    id: "stock4",
-    medicineId: "med3",
-    batch: "BATCH-004",
-    expiryDate: "2025-03-10",
-    availableQty: 200,
-  },
-  {
-    id: "stock5",
-    medicineId: "med4",
-    batch: "BATCH-005",
-    expiryDate: "2024-05-30",
-    availableQty: 45,
-  },
-];
+interface StockBatch {
+  id: number;
+  medicine_id: number;
+  medicineName: string;
+  batch: string;
+  expiryDate: string;
+  availableQty: number;
+}
 
 const adjustmentTypes = ["Damage", "Expired", "Correction"];
 
 export default function StockAdjustmentPage() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Real data states
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [stockBatches, setStockBatches] = useState<StockBatch[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form states
   const [selectedMedicine, setSelectedMedicine] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
   const [adjustmentType, setAdjustmentType] = useState("");
@@ -104,8 +60,45 @@ export default function StockAdjustmentPage() {
   const [reason, setReason] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const batches = stockItems.filter((s) => s.medicineId === selectedMedicine);
+  // Fetch stock data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const response = await purchasesApi.getStock();
+        // Normalize response (handles both wrapped and unwrapped)
+        const responseData = response?.data?.data ?? response?.data ?? [];
+        const stockData: StockBatch[] = responseData;
+
+        setStockBatches(stockData);
+
+        // Derive unique medicines from stock
+        const uniqueMedicines: Medicine[] = [];
+        const seen = new Set<number>();
+        stockData.forEach((item) => {
+          if (!seen.has(item.medicine_id)) {
+            seen.add(item.medicine_id);
+            uniqueMedicines.push({
+              id: item.medicine_id,
+              name: item.medicineName,
+              isActive: true,
+            });
+          }
+        });
+        setMedicines(uniqueMedicines);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        toast.error('Failed to load stock data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const batches = stockBatches.filter((b) => b.medicine_id === Number(selectedMedicine));
   const currentStock = batches.find((b) => b.batch === selectedBatch);
 
   const validate = () => {
@@ -125,18 +118,42 @@ export default function StockAdjustmentPage() {
     setConfirmOpen(true);
   };
 
-  const handleConfirm = () => {
-    setConfirmOpen(false);
-    toast.success("Stock adjustment recorded successfully", {
-      description: `${quantity} units of ${medicines.find(m => m.id === selectedMedicine)?.name} (${selectedBatch}) have been adjusted.`,
-    });
-    // Reset form
-    setSelectedMedicine("");
-    setSelectedBatch("");
-    setAdjustmentType("");
-    setQuantity("");
-    setReason("");
-    setErrors({});
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/pharmacy/stock-adjustments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          medicineId: Number(selectedMedicine),
+          batch: selectedBatch,
+          adjustmentType,
+          quantity: Number(quantity),
+          reason,
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Stock adjustment recorded', {
+          description: `${quantity} units of ${medicines.find(m => m.id === Number(selectedMedicine))?.name} (${selectedBatch}) have been adjusted.`,
+        });
+        setConfirmOpen(false);
+        // Reset form
+        setSelectedMedicine("");
+        setSelectedBatch("");
+        setAdjustmentType("");
+        setQuantity("");
+        setReason("");
+        setErrors({});
+      } else {
+        toast.error(result.message || 'Adjustment failed');
+      }
+    } catch (error) {
+      console.error('Adjustment error:', error);
+      toast.error('An error occurred');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
@@ -154,42 +171,38 @@ export default function StockAdjustmentPage() {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile Menu Button */}
-        <button
-            className="lg:hidden fixed bottom-20 right-6 z-50 p-2.5 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          >
-            {isSidebarOpen ? (
-              <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            ) : (
-              <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            )}
-          </button>
-    
-          {/* Sidebar */}
-          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-    
-          {/* Backdrop for mobile */}
-          {isSidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
-              onClick={() => setIsSidebarOpen(false)}
-            />
-          )}
+      <button
+        className="lg:hidden fixed bottom-20 right-6 z-50 p-2.5 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
 
-      {/* Main Content */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       <div className="flex-1 flex flex-col w-full lg:ml-0 min-w-0">
-        {/* Header */}
         <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
           <div className="flex h-16 items-center px-4 md:px-6">
             <div className="flex items-center gap-3">
-              {/* Spacer for mobile menu */}
               <div className="w-8 lg:hidden"></div>
-              
-            
-              
               <div>
                 <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Stock Adjustment
@@ -202,15 +215,14 @@ export default function StockAdjustmentPage() {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-2xl mx-auto">
             <Card>
               <CardContent className="p-6 space-y-5">
                 {/* Medicine Selection */}
                 <Field label="Medicine" error={errors.medicine}>
-                  <Select 
-                    value={selectedMedicine} 
+                  <Select
+                    value={selectedMedicine}
                     onValueChange={(value) => {
                       setSelectedMedicine(value);
                       setSelectedBatch("");
@@ -220,8 +232,10 @@ export default function StockAdjustmentPage() {
                       <SelectValue placeholder="Select medicine" />
                     </SelectTrigger>
                     <SelectContent>
-                      {medicines.filter(m => m.isActive).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      {medicines.map((m) => (
+                        <SelectItem key={m.id} value={String(m.id)}>
+                          {m.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -229,8 +243,8 @@ export default function StockAdjustmentPage() {
 
                 {/* Batch Selection */}
                 <Field label="Batch" error={errors.batch}>
-                  <Select 
-                    value={selectedBatch} 
+                  <Select
+                    value={selectedBatch}
                     onValueChange={setSelectedBatch}
                     disabled={!selectedMedicine}
                   >
@@ -240,7 +254,7 @@ export default function StockAdjustmentPage() {
                     <SelectContent>
                       {batches.map((b) => (
                         <SelectItem key={b.batch} value={b.batch}>
-                          {b.batch} — Exp: {b.expiryDate} — Qty: {b.availableQty}
+                          {b.batch} — Exp: {new Date(b.expiryDate).toLocaleDateString()} — Qty: {b.availableQty}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -299,7 +313,8 @@ export default function StockAdjustmentPage() {
                 </Field>
 
                 {/* Submit Button */}
-                <Button onClick={handleSubmit} className="w-full">
+                <Button onClick={handleSubmit} className="w-full" disabled={submitting}>
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Submit Adjustment
                 </Button>
               </CardContent>
@@ -313,48 +328,26 @@ export default function StockAdjustmentPage() {
                 <DialogTitle>Confirm Stock Adjustment</DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Medicine:</span>{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {medicines.find(m => m.id === selectedMedicine)?.name}
-                    </span>
-                  </p>
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Batch:</span>{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{selectedBatch}</span>
-                  </p>
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Type:</span>{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{adjustmentType}</span>
-                  </p>
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Quantity:</span>{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{quantity}</span>
-                  </p>
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Reason:</span>{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{reason}</span>
-                  </p>
-                  {currentStock && (
-                    <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Stock will change from{' '}
-                        <span className="font-bold text-gray-900 dark:text-white">{currentStock.availableQty}</span>
-                        {' → '}
-                        <span className="font-bold text-gray-900 dark:text-white">
-                          {currentStock.availableQty - Number(quantity)}
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
+                <p><span className="text-gray-500">Medicine:</span> {medicines.find(m => m.id === Number(selectedMedicine))?.name}</p>
+                <p><span className="text-gray-500">Batch:</span> {selectedBatch}</p>
+                <p><span className="text-gray-500">Type:</span> {adjustmentType}</p>
+                <p><span className="text-gray-500">Quantity:</span> {quantity}</p>
+                <p><span className="text-gray-500">Reason:</span> {reason}</p>
+                {currentStock && (
+                  <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      Stock will change from <span className="font-bold">{currentStock.availableQty}</span> →{' '}
+                      <span className="font-bold">{currentStock.availableQty - Number(quantity)}</span>
+                    </p>
+                  </div>
+                )}
               </div>
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button variant="outline" onClick={() => setConfirmOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button onClick={handleConfirm} className="w-full sm:w-auto">
+                <Button onClick={handleConfirm} disabled={submitting} className="w-full sm:w-auto">
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Confirm Adjustment
                 </Button>
               </DialogFooter>

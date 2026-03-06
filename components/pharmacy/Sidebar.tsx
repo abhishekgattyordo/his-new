@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Bell,
   Search,
+   Receipt,  
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -69,6 +70,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       iconColor: 'text-amber-600'
     },
     {
+      icon: Receipt,
+      label: 'Billing',
+      href: '/pharmacy/billingpage',
+      color: 'from-teal-500 to-teal-700',
+      iconColor: 'text-teal-600'
+    },
+    {
       icon: ClipboardList,
       label: 'OP Dispense',
       href: '/pharmacy/op-dispense',
@@ -106,16 +114,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
   ];
 
-  const quickAccessItems = [
-    {
-      icon: Pill,
-      label: 'Quick Dispense',
-      href: '/pharmacy/quick-dispense',
-      iconBg: 'bg-green-50 dark:bg-green-900/30',
-      iconColor: 'text-green-600 dark:text-green-400'
-    }
+  // const quickAccessItems = [
+  //   {
+  //     icon: Pill,
+  //     label: 'Quick Dispense',
+  //     href: '/pharmacy/quick-dispense',
+  //     iconBg: 'bg-green-50 dark:bg-green-900/30',
+  //     iconColor: 'text-green-600 dark:text-green-400'
+  //   }
    
-  ];
+  // ];
 
   // Function to handle link click (for mobile)
   const handleLinkClick = () => {
@@ -251,7 +259,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           {/* Quick Access */}
-          {!isCollapsed && (
+          {/* {!isCollapsed && (
             <div className="pt-4">
               <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-3">
                 Quick Actions
@@ -272,10 +280,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
           
-          {/* Quick Access Icons Only (when collapsed) */}
-          {isCollapsed && (
+       
+          {/* {isCollapsed && (
             <div className="pt-4 space-y-1">
               {quickAccessItems.map((item) => (
                 <Link
@@ -291,7 +299,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </Link>
               ))}
             </div>
-          )}
+          )} */}
         </nav>
 
         {/* User Profile Section - Fixed at bottom */}

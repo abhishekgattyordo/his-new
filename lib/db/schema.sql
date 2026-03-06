@@ -401,4 +401,253 @@ CREATE TRIGGER update_doctors_updated_at
 
 
 
+-- -------------------pharmacy---------------------------
 
+CREATE TABLE IF NOT EXISTS medicines (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  generic_name VARCHAR(255),
+  brand_name VARCHAR(255),
+  category VARCHAR(100) NOT NULL,
+  unit VARCHAR(50) NOT NULL,
+  purchase_price DECIMAL(10,2) NOT NULL,
+  selling_price DECIMAL(10,2) NOT NULL,
+  mrp DECIMAL(10,2),
+  tax_percent DECIMAL(5,2) DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+
+
+
+-- Suppliers table
+CREATE TABLE IF NOT EXISTS suppliers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  contact_person VARCHAR(255),
+  phone VARCHAR(50),
+  email VARCHAR(255),
+  address TEXT,
+  gst_no VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Purchases table (header)
+CREATE TABLE IF NOT EXISTS purchases (
+  id SERIAL PRIMARY KEY,
+  supplier_id INTEGER REFERENCES suppliers(id),
+  invoice_no VARCHAR(100) UNIQUE NOT NULL,
+  invoice_date DATE NOT NULL,
+  gst_no VARCHAR(50),
+  payment_mode VARCHAR(50),
+  subtotal DECIMAL(10,2) NOT NULL,
+  tax_total DECIMAL(10,2) NOT NULL,
+  grand_total DECIMAL(10,2) NOT NULL,
+  is_delivered BOOLEAN DEFAULT false,      
+  stock_updated BOOLEAN DEFAULT false, 
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Purchase items (line items)
+CREATE TABLE IF NOT EXISTS purchase_items (
+  id SERIAL PRIMARY KEY,
+  purchase_id INTEGER REFERENCES purchases(id) ON DELETE CASCADE,
+  medicine_id INTEGER REFERENCES medicines(id),
+  batch_no VARCHAR(100) NOT NULL,
+  expiry_date DATE NOT NULL,
+  quantity INTEGER NOT NULL,
+  purchase_price DECIMAL(10,2) NOT NULL,
+  mrp DECIMAL(10,2) NOT NULL,
+  tax_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
+  total DECIMAL(10,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Stock table (current inventory per medicine/batch)
+CREATE TABLE IF NOT EXISTS stock (
+  id SERIAL PRIMARY KEY,
+  medicine_id INTEGER REFERENCES medicines(id),
+  batch_no VARCHAR(100) NOT NULL,
+  expiry_date DATE NOT NULL,
+  quantity INTEGER NOT NULL,
+  purchase_price DECIMAL(10,2) NOT NULL,
+  mrp DECIMAL(10,2) NOT NULL,
+  delivered_manual INTEGER,  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(medicine_id, batch_no)
+);
+
+
+-- Sales table (header)
+CREATE TABLE IF NOT EXISTS sales (
+  id SERIAL PRIMARY KEY,
+  patient_id BIGINT REFERENCES patients(patient_id), -- nullable for walk‑ins
+  walkin_name VARCHAR(255),
+  doctor_name VARCHAR(255), 
+  walkin_phone VARCHAR(50),
+  walkin_address TEXT,
+  sale_date DATE NOT NULL,
+  subtotal DECIMAL(10,2) NOT NULL,
+  tax_total DECIMAL(10,2) NOT NULL,
+  discount_total DECIMAL(10,2) DEFAULT 0,
+  grand_total DECIMAL(10,2) NOT NULL,
+  payment_mode VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sale items (line items)
+CREATE TABLE IF NOT EXISTS sale_items (
+  id SERIAL PRIMARY KEY,
+  sale_id INTEGER REFERENCES sales(id) ON DELETE CASCADE,
+  medicine_id INTEGER REFERENCES medicines(id),
+  batch_no VARCHAR(100) NOT NULL,
+  quantity INTEGER NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL,
+  tax_percent DECIMAL(5,2) DEFAULT 0,
+  total DECIMAL(10,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+-- Prescriptions table
+CREATE TABLE IF NOT EXISTS prescriptions (
+  id SERIAL PRIMARY KEY,
+  patient_id BIGINT REFERENCES patients(patient_id),
+  doctor_id INTEGER REFERENCES doctors(id),
+  consultation_id VARCHAR(50) UNIQUE NOT NULL,
+  prescription_date DATE NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'dispensed', 'cancelled')),
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Prescription items
+CREATE TABLE IF NOT EXISTS prescription_items (
+  id SERIAL PRIMARY KEY,
+  prescription_id INTEGER REFERENCES prescriptions(id) ON DELETE CASCADE,
+  medicine_id INTEGER REFERENCES medicines(id),
+  prescribed_qty INTEGER NOT NULL,
+  dispensed_qty INTEGER DEFAULT 0,
+  instructions TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for performance
+CREATE INDEX idx_prescriptions_patient_id ON prescriptions(patient_id);
+CREATE INDEX idx_prescriptions_doctor_id ON prescriptions(doctor_id);
+CREATE INDEX idx_prescriptions_status ON prescriptions(status);
+CREATE INDEX idx_prescription_items_prescription_id ON prescription_items(prescription_id);
+CREATE INDEX idx_prescription_items_medicine_id ON prescription_items(medicine_id);
+
+-- Add prescription_id to sales (optional, for linking)
+ALTER TABLE sales ADD COLUMN prescription_id INTEGER REFERENCES prescriptions(id);
+
+
+
+
+-- ----------------------stock adjustment------------------------------
+
+-- Table to record stock adjustments
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+    id SERIAL PRIMARY KEY,
+    medicine_id INTEGER NOT NULL REFERENCES medicines(id),
+    batch_no VARCHAR(100) NOT NULL,
+    adjustment_type VARCHAR(50) NOT NULL, -- e.g., 'Damage', 'Expired', 'Correction'
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    reason TEXT NOT NULL,
+    previous_quantity INTEGER NOT NULL,
+    new_quantity INTEGER NOT NULL,
+    created_by INTEGER REFERENCES users(id) NULL, -- optional if you have user auth
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for faster lookups
+CREATE INDEX idx_stock_adjustments_medicine_id ON stock_adjustments(medicine_id);
+CREATE INDEX idx_stock_adjustments_batch_no ON stock_adjustments(batch_no);
+
+
+
+
+-- =====================================================
+-- DOCTOR AVAILABILITY
+-- =====================================================
+
+
+
+CREATE TABLE IF NOT EXISTS doctor_availability (
+    id SERIAL PRIMARY KEY,
+    doctor_id INTEGER NOT NULL,
+    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    slot_duration_minutes INTEGER DEFAULT 30,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+);
+-- =====================================================
+-- APPOINTMENTS ✅ (ONLY ONE — IMPORTANT)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    patient_id VARCHAR(50),
+    doctor_id INTEGER NOT NULL,
+    appointment_date DATE NOT NULL,
+    appointment_time VARCHAR(20) NOT NULL,
+    consultation_type VARCHAR(20)
+        CHECK (consultation_type IN ('in-person','teleconsultation')),
+    notes TEXT,
+    status VARCHAR(20) DEFAULT 'BOOKED'
+        CHECK (status IN ('BOOKED','COMPLETED','CANCELLED')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
+
+DROP TRIGGER IF EXISTS update_appointments_updated_at ON appointments;
+CREATE TRIGGER update_appointments_updated_at
+BEFORE UPDATE ON appointments
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- VIEW
+-- =====================================================
+
+CREATE OR REPLACE VIEW registration_details AS
+SELECT 
+    p.*,
+    i.insurance_provider,
+    i.policy_number,
+    i.valid_until,
+    i.group_id,
+    i.aadhaar_number,
+    i.aadhaar_verified,
+    i.abha_id,
+    fv.face_verified,
+    fv.verification_date,
+    r.registration_id,
+    r.status as registration_status,
+    r.completed_at
+FROM patients p
+LEFT JOIN insurance_details i ON p.patient_id = i.patient_id
+LEFT JOIN face_verification fv ON p.patient_id = fv.patient_id
+LEFT JOIN registrations r ON p.patient_id = r.patient_id;

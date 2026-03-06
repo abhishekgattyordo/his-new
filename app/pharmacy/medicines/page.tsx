@@ -1,8 +1,6 @@
-// app/pharmacy/medicines/page.tsx
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -10,14 +8,8 @@ import {
   Edit2,
   Power,
   Filter,
-  Bell,
-  User,
   Menu,
   X,
-  ChevronDown,
-  LogOut,
-  Settings,
-  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,18 +29,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/admin/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Sidebar from "@/components/pharmacy/Sidebar";
+import { medicinesApi } from '@/lib/api/medicinesApi';
+import { toast } from 'sonner';
 
-// Mock Data (move to separate file later)
+// Categories
 const categories = [
   "Antibiotics",
   "Pain Relief",
@@ -58,94 +43,140 @@ const categories = [
   "Gastrointestinal",
 ];
 
-const medicines = [
-  {
-    id: "1",
-    name: "Amoxicillin 500mg",
-    generic: "Amoxicillin",
-    brand: "Amoxil",
-    category: "Antibiotics",
-    unit: "Capsule",
-    sellingPrice: 12.5,
-    taxPercent: 12,
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Paracetamol 650mg",
-    generic: "Paracetamol",
-    brand: "Calpol",
-    category: "Pain Relief",
-    unit: "Tablet",
-    sellingPrice: 5.75,
-    taxPercent: 5,
-    isActive: true,
-  },
-  {
-    id: "3",
-    name: "Metformin 500mg",
-    generic: "Metformin",
-    brand: "Glycomet",
-    category: "Diabetes",
-    unit: "Tablet",
-    sellingPrice: 8.25,
-    taxPercent: 5,
-    isActive: true,
-  },
-  {
-    id: "4",
-    name: "Atorvastatin 10mg",
-    generic: "Atorvastatin",
-    brand: "Lipitor",
-    category: "Cardiovascular",
-    unit: "Tablet",
-    sellingPrice: 15.0,
-    taxPercent: 12,
-    isActive: false,
-  },
-  {
-    id: "5",
-    name: "Salbutamol Inhaler",
-    generic: "Salbutamol",
-    brand: "Asthalin",
-    category: "Respiratory",
-    unit: "Inhaler",
-    sellingPrice: 185.0,
-    taxPercent: 12,
-    isActive: true,
-  },
-];
-
 export default function MedicineListPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [confirmModal, setConfirmModal] = useState<string | null>(null);
-  const [meds, setMeds] = useState(medicines);
+  const [meds, setMeds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Fetch medicines – memoized with useCallback
+  const fetchMedicines = useCallback(async () => {
+ 
+
+    setLoading(true);
+
+    try {
+      const params: any = {};
+      if (search) params.search = search;
+      if (categoryFilter !== 'all') params.category = categoryFilter;
+
+  
+
+      const response = await medicinesApi.getMedicines(params);
+
+   
+
+      // Handle different response shapes
+      let medicinesArray = [];
+
+      if (Array.isArray(response.data)) {
+     
+        medicinesArray = response.data;
+      } else if (response.data?.success && Array.isArray(response.data.data)) {
+      
+        medicinesArray = response.data.data;
+      } else {
+       
+        setError('Failed to load medicines');
+        setLoading(false);
+        return;
+      }
+
+      const mapped = medicinesArray.map((item: any) => {
+    
+        return {
+          id: item.id.toString(),
+          name: item.name,
+          generic: item.generic_name,
+          brand: item.brand_name,
+          category: item.category,
+          unit: item.unit,
+          sellingPrice: parseFloat(item.selling_price) || 0,
+          taxPercent: parseFloat(item.tax_percent) || 0,
+          isActive: item.is_active,
+        };
+      });
+
+   
+
+      setMeds(mapped);
+      setError(null);
+    } catch (err) {
+      console.error('🔥 Fetch medicines error:', err);
+      setError('An error occurred');
+    } finally {
+      console.log('⏹️ Loading finished');
+      setLoading(false);
+    }
+  }, [search, categoryFilter]); // Dependencies – re‑create when search or category changes
+
+  // Initial fetch
+  useEffect(() => {
+    fetchMedicines();
+  }, [fetchMedicines]);
+
+  // Client‑side filtering
   const filtered = meds.filter((m) => {
-    const matchSearch =
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.brand.toLowerCase().includes(search.toLowerCase()) ||
-      m.generic.toLowerCase().includes(search.toLowerCase());
-    const matchCategory =
-      categoryFilter === "all" || m.category === categoryFilter;
-    const matchStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" ? m.isActive : !m.isActive);
+    const searchLower = search.toLowerCase();
+
+    const nameMatch = m.name && m.name.toLowerCase().includes(searchLower);
+    const brandMatch = m.brand && m.brand.toLowerCase().includes(searchLower);
+    const genericMatch = m.generic && m.generic.toLowerCase().includes(searchLower);
+
+    const matchSearch = search === '' || nameMatch || brandMatch || genericMatch;
+
+    const matchCategory = categoryFilter === 'all' || m.category === categoryFilter;
+
+    const matchStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' ? m.isActive : !m.isActive);
+
+
+
     return matchSearch && matchCategory && matchStatus;
   });
 
-  const handleToggle = (id: string) => {
-    setMeds((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)),
-    );
-    setConfirmModal(null);
+  // Toggle active status
+  const handleToggle = async (id: string) => {
+    try {
+      const medicine = meds.find(m => m.id === id);
+      if (!medicine) return;
+
+      console.log('🔄 Toggling status for:', medicine.name, 'current active:', medicine.isActive);
+
+      const response = await medicinesApi.updateMedicine(Number(id), {
+        isActive: !medicine.isActive
+      });
+
+      console.log('📥 Full response object:', response);
+      console.log('📥 response.data:', response?.data);
+
+      // Check both possibilities – using type assertion for the second to avoid TypeScript error
+      const isSuccess = response?.data?.success === true || (response as any)?.success === true;
+      const errorMsg = response?.data?.message || (response as any)?.message || 'Failed to update status';
+
+      if (isSuccess) {
+        // Optimistically update local state
+        setMeds(prev =>
+          prev.map(m => (m.id === id ? { ...m, isActive: !m.isActive } : m))
+        );
+        toast.success(`Medicine ${medicine.isActive ? 'deactivated' : 'activated'} successfully`);
+      } else {
+        console.error('❌ Update failed – isSuccess false, errorMsg:', errorMsg);
+        console.error('Actual response structure:', response);
+        toast.error(errorMsg);
+      }
+    } catch (error: any) {
+      console.error('🔥 Update error:', error);
+      toast.error(error?.response?.data?.message || 'An error occurred');
+    } finally {
+      setConfirmModal(null);
+    }
   };
 
   return (
@@ -162,10 +193,8 @@ export default function MedicineListPage() {
         )}
       </button>
 
-      {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      {/* Backdrop for mobile */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
@@ -173,32 +202,20 @@ export default function MedicineListPage() {
         />
       )}
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col w-full lg:ml-0 min-w-0">
-        {/* Top Navigation Bar */}
         <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-          <div className="flex h-16 items-center justify-between px-4 md:px-6">
-            {/* Left section - Mobile menu + Logo */}
-            <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-              <div className="flex h-16 items-center px-4 md:px-6">
-                <div className="flex items-center gap-3">
-                  {/* Spacer for mobile menu */}
-                  <div className="w-8 lg:hidden"></div>
-
-                  <div>
-                    <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      PharmaCare
-                    </h1>
-                  </div>
-                </div>
+          <div className="flex h-16 items-center px-4 md:px-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 lg:hidden"></div>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  PharmaCare
+                </h1>
               </div>
-            </header>
-
-            {/* Right section - Actions */}
+            </div>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="space-y-6">
             {/* Page Header */}
@@ -208,20 +225,24 @@ export default function MedicineListPage() {
                   Medicine Master
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {filtered.length}{" "}
-                  {filtered.length === 1 ? "medicine" : "medicines"} found
+                  {filtered.length} {filtered.length === 1 ? "medicine" : "medicines"} found
                 </p>
               </div>
-              <Button
-                onClick={() => router.push("/pharmacy/medicines/add")}
-                className="w-full sm:w-auto"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Medicine
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={fetchMedicines} disabled={loading}>
+                  {loading ? "Loading..." : "Refresh"}
+                </Button>
+                <Button
+                  onClick={() => router.push("/pharmacy/medicines/add")}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Medicine
+                </Button>
+              </div>
             </div>
 
-            {/* Filters - Desktop */}
+            {/* Desktop Filters */}
             <div className="hidden md:flex flex-wrap items-center gap-3">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -240,9 +261,7 @@ export default function MedicineListPage() {
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -261,7 +280,7 @@ export default function MedicineListPage() {
               </Select>
             </div>
 
-            {/* Mobile Filter Button and Filters */}
+            {/* Mobile Filters */}
             <div className="md:hidden">
               <Button
                 variant="outline"
@@ -285,19 +304,14 @@ export default function MedicineListPage() {
                         className="pl-10"
                       />
                     </div>
-                    <Select
-                      value={categoryFilter}
-                      onValueChange={setCategoryFilter}
-                    >
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                       <SelectTrigger>
                         <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
                         {categories.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c}
-                          </SelectItem>
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -319,7 +333,7 @@ export default function MedicineListPage() {
               )}
             </div>
 
-            {/* Table - Desktop */}
+            {/* Desktop Table */}
             <div className="hidden md:block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -382,7 +396,7 @@ export default function MedicineListPage() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() =>
-                                router.push(`/pharmacy/medicines/edit/${m.id}`)
+                                router.push(`/pharmacy/medicines/${m.id}`)
                               }
                             >
                               <Edit2 className="h-4 w-4 text-gray-500" />
@@ -472,14 +486,11 @@ export default function MedicineListPage() {
                     <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-8"
-                        onClick={() =>
-                          router.push(`/pharmacy/medicines/edit/${m.id}`)
-                        }
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => router.push(`/pharmacy/medicines/${m.id}`)}
                       >
-                        <Edit2 className="h-4 w-4 mr-1" />
-                        Edit
+                        <Edit2 className="h-4 w-4 text-gray-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -505,10 +516,7 @@ export default function MedicineListPage() {
             </div>
 
             {/* Confirm Modal */}
-            <Dialog
-              open={!!confirmModal}
-              onOpenChange={() => setConfirmModal(null)}
-            >
+            <Dialog open={!!confirmModal} onOpenChange={() => setConfirmModal(null)}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Confirm Status Change</DialogTitle>

@@ -1,6 +1,3 @@
-
-
-
 // "use client";
 
 // import { useState, useEffect } from "react";
@@ -502,7 +499,6 @@
 //           </div>
 
 //           {/* Consultation Type */}
-          
 
 //           {/* Toggles */}
 //           <div className="space-y-3">
@@ -528,7 +524,6 @@
 //               </button>
 //             </div>
 
-            
 //           </div>
 //         </div>
 //       )}
@@ -597,10 +592,7 @@
 //                   </div>
 
 //                   {/* Toggles */}
-                  
 
-               
-                  
 //                 </div>
 //               </CardContent>
 //             </Card>
@@ -677,7 +669,7 @@
 //                               {doctor.name.split(" ").map((n) => n[0]).join("")}
 //                             </AvatarFallback>
 //                           </Avatar>
-                          
+
 //                           {doctor.isOnline && (
 //                             <div className="absolute -bottom-2 -right-2 bg-green-100 text-green-700 border border-white dark:border-gray-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 text-xs font-bold flex items-center gap-1">
 //                               <div className="w-1.5 h-1.5 bg-green-500 animate-pulse"></div>
@@ -685,7 +677,7 @@
 //                             </div>
 //                           )}
 //                         </div>
-                        
+
 //                         <div className="flex flex-col justify-center">
 //                           <div className="flex items-center gap-2 mb-1">
 //                             <Link
@@ -698,11 +690,11 @@
 //                               <Verified className="h-4 w-4 text-green-500" />
 //                             )}
 //                           </div>
-                          
+
 //                           <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">
 //                             {doctor.specialty} • {doctor.experience} Years Exp.
 //                           </p>
-                          
+
 //                           <div className="flex items-center gap-1">
 //                             <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
 //                             <span className="text-sm font-bold text-gray-900 dark:text-white">
@@ -821,14 +813,16 @@
 //           </div>
 //         </div>
 //       </div>
-   
+
 //     </div>
 //   );
 // }
 
+
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -861,9 +855,15 @@ import {
   Verified,
 } from "lucide-react";
 import Header from "@/components/ui/Header";
+import { doctorsApi } from "@/lib/api/doctors";
 
 // Types
-type SortOption = 'recommended' | 'rating' | 'experience' | 'price-low' | 'price-high';
+type SortOption =
+  | "recommended"
+  | "rating"
+  | "experience"
+  | "price-low"
+  | "price-high";
 
 interface Doctor {
   id: string;
@@ -895,8 +895,10 @@ const mockDoctors: Doctor[] = [
     isVerified: true,
     isOnline: true,
     isPremium: true,
-    imageUrl: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
-    profilePhoto: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
+    imageUrl:
+      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
+    profilePhoto:
+      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
     nextAvailableSlots: [{ time: "10:00 AM" }, { time: "2:00 PM" }],
     consultationFee: 1500,
     price: 1500,
@@ -912,8 +914,10 @@ const mockDoctors: Doctor[] = [
     isVerified: true,
     isOnline: false,
     isPremium: false,
-    imageUrl: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
-    profilePhoto: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
+    imageUrl:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
+    profilePhoto:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
     nextAvailableSlots: [{ time: "11:00 AM" }, { time: "3:00 PM" }],
     consultationFee: 1200,
     price: 1200,
@@ -929,8 +933,10 @@ const mockDoctors: Doctor[] = [
     isVerified: true,
     isOnline: true,
     isPremium: true,
-    imageUrl: "https://images.unsplash.com/photo-1594824434340-7e7dfc37cabb?w=400&h=400&fit=crop&crop=face",
-    profilePhoto: "https://images.unsplash.com/photo-1594824434340-7e7dfc37cabb?w=400&h=400&fit=crop&crop=face",
+    imageUrl:
+      "https://images.unsplash.com/photo-1594824434340-7e7dfc37cabb?w=400&h=400&fit=crop&crop=face",
+    profilePhoto:
+      "https://images.unsplash.com/photo-1594824434340-7e7dfc37cabb?w=400&h=400&fit=crop&crop=face",
     nextAvailableSlots: [{ time: "9:00 AM" }, { time: "1:00 PM" }],
     consultationFee: 1800,
     price: 1800,
@@ -946,8 +952,10 @@ const mockDoctors: Doctor[] = [
     isVerified: true,
     isOnline: true,
     isPremium: true,
-    imageUrl: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
-    profilePhoto: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
+    imageUrl:
+      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
+    profilePhoto:
+      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
     nextAvailableSlots: [{ time: "11:00 AM" }, { time: "4:00 PM" }],
     consultationFee: 2000,
     price: 2000,
@@ -968,60 +976,134 @@ const specialties = [
 
 export default function AppointmentBookingPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>("");
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [premiumOnly, setPremiumOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('recommended');
+  const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await doctorsApi.getDoctors();
+        console.log("API Response:", res.data);
+
+        const formattedDoctors = (res.data || []).map((doc: any) => ({
+          id: doc.id.toString(),
+          name: `Dr. ${doc.firstName} ${doc.lastName}`,
+          specialty: doc.specialty,
+          experience: doc.experience,
+          rating: 4.5,
+          reviewCount: 20,
+          isVerified: true,
+          isOnline: true,
+          isPremium: false,
+          profilePhoto: `http://localhost:3000${doc.avatar}`,
+          imageUrl: `http://localhost:3000${doc.avatar}`,
+          nextAvailableSlots: [{ time: "10:00 AM" }],
+          consultationFee: 1000,
+          price: 1000,
+          nextAvailable: "Today",
+        }));
+
+        console.log("Formatted Doctors:", formattedDoctors);
+
+        setDoctors(formattedDoctors);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
 
   const filteredAndSortedDoctors = useMemo(() => {
-    let filtered = mockDoctors.filter((doctor) => {
-      const matchesSearch =
-        searchQuery === '' ||
-        doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+  console.log("---- Filtering Doctors ----");
+  console.log("All Doctors:", doctors);
+  console.log("Search Query:", searchQuery);
+  console.log("Selected Specialty:", selectedSpecialty);
+  console.log("Online Only:", onlineOnly);
+  console.log("Premium Only:", premiumOnly);
+  console.log("Sort By:", sortBy);
 
-      const matchesSpecialty =
-        selectedSpecialty === '' || doctor.specialty === selectedSpecialty;
+  const filtered = doctors.filter((doctor) => {
+    console.log("Checking doctor:", doctor);
 
-      const matchesOnline = !onlineOnly || doctor.isOnline;
-      const matchesPremium = !premiumOnly || doctor.isPremium;
+    const matchesSearch =
+      searchQuery === "" ||
+      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchesSearch && matchesSpecialty && matchesOnline && matchesPremium;
-    });
+    console.log("matchesSearch:", matchesSearch);
 
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'rating':
-          return b.rating - a.rating;
-        case 'experience':
-          return b.experience - a.experience;
-        case 'price-low':
-          return a.price - b.price;
-        case 'price-high':
-          return b.price - a.price;
-        default:
-          return 0;
-      }
-    });
+    const matchesSpecialty =
+      selectedSpecialty === "" ||
+      doctor.specialty.toLowerCase() === selectedSpecialty.toLowerCase();
 
-    return filtered;
-  }, [searchQuery, selectedSpecialty, onlineOnly, premiumOnly, sortBy]);
+    console.log("matchesSpecialty:", matchesSpecialty);
+
+    const matchesOnline = !onlineOnly || doctor.isOnline;
+    console.log("matchesOnline:", matchesOnline);
+
+    const matchesPremium = !premiumOnly || doctor.isPremium;
+    console.log("matchesPremium:", matchesPremium);
+
+    const result =
+      matchesSearch && matchesSpecialty && matchesOnline && matchesPremium;
+
+    console.log("Final Filter Result:", result);
+
+    return result;
+  });
+
+  console.log("Filtered Doctors:", filtered);
+
+  filtered.sort((a, b) => {
+    console.log("Sorting doctors:", a.name, b.name);
+
+    switch (sortBy) {
+      case "rating":
+        return b.rating - a.rating;
+      case "experience":
+        return b.experience - a.experience;
+      case "price-low":
+        return a.price - b.price;
+      case "price-high":
+        return b.price - a.price;
+      default:
+        return 0;
+    }
+  });
+
+  console.log("Final Sorted Doctors:", filtered);
+
+  return filtered;
+}, [
+  doctors,
+  searchQuery,
+  selectedSpecialty,
+  onlineOnly,
+  premiumOnly,
+  sortBy,
+]);
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedSpecialty('');
+    setSearchQuery("");
+    setSelectedSpecialty("");
     setOnlineOnly(false);
     setPremiumOnly(false);
-    setSortBy('recommended');
+    setSortBy("recommended");
   };
 
   const FiltersSection = () => (
     <div className="space-y-6">
       {/* Search Bar - Moved to sidebar */}
       <div>
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Search</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+          Search
+        </h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -1034,14 +1116,16 @@ export default function AppointmentBookingPage() {
       </div>
 
       <div>
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Specialty</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+          Specialty
+        </h3>
         <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
           <button
-            onClick={() => setSelectedSpecialty('')}
+            onClick={() => setSelectedSpecialty("")}
             className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-              selectedSpecialty === ''
-                ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 font-medium'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+              selectedSpecialty === ""
+                ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 font-medium"
+                : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
             }`}
           >
             All Specialties
@@ -1052,8 +1136,8 @@ export default function AppointmentBookingPage() {
               onClick={() => setSelectedSpecialty(specialty)}
               className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
                 selectedSpecialty === specialty
-                  ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 font-medium'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 font-medium"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
               }`}
             >
               {specialty}
@@ -1063,7 +1147,9 @@ export default function AppointmentBookingPage() {
       </div>
 
       <div>
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Filters</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+          Filters
+        </h3>
         <div className="space-y-3">
           <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <input
@@ -1094,7 +1180,9 @@ export default function AppointmentBookingPage() {
 
       {/* Sort Options in Sidebar for Mobile */}
       <div className="lg:hidden">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Sort By</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+          Sort By
+        </h3>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -1108,9 +1196,9 @@ export default function AppointmentBookingPage() {
         </select>
       </div>
 
-      <Button 
-        variant="outline" 
-        onClick={clearFilters} 
+      <Button
+        variant="outline"
+        onClick={clearFilters}
         className="w-full border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
       >
         Clear All Filters
@@ -1122,14 +1210,13 @@ export default function AppointmentBookingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
 
-   
-
       {/* Mobile Filters Toggle */}
       <div className="lg:hidden px-4 sm:px-6 py-4 flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <p className="text-gray-600 dark:text-gray-400">
           <span className="font-semibold text-gray-900 dark:text-white">
             {filteredAndSortedDoctors.length}
-          </span> doctors found
+          </span>{" "}
+          doctors found
         </p>
         <Button
           onClick={() => setShowMobileFilters(true)}
@@ -1143,13 +1230,18 @@ export default function AppointmentBookingPage() {
 
       {/* Mobile Filters Sidebar */}
       {showMobileFilters && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowMobileFilters(false)}>
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setShowMobileFilters(false)}
+        >
           <div
             className="absolute top-0 left-0 bottom-0 w-80 bg-white dark:bg-gray-900 p-6 overflow-y-auto border-r border-gray-200 dark:border-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Filters</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Filters
+              </h2>
               <button onClick={() => setShowMobileFilters(false)}>
                 <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
               </button>
@@ -1176,10 +1268,13 @@ export default function AppointmentBookingPage() {
               <p className="text-gray-600 dark:text-gray-400">
                 <span className="font-semibold text-gray-900 dark:text-white">
                   {filteredAndSortedDoctors.length}
-                </span> doctors found
+                </span>{" "}
+                doctors found
               </p>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Sort by:</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Sort by:
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -1197,26 +1292,35 @@ export default function AppointmentBookingPage() {
             {filteredAndSortedDoctors.length === 0 ? (
               <Card className="p-12 text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
                 <UserX className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No doctors found</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  No doctors found
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   Try adjusting your filters or search criteria
                 </p>
-                <Button onClick={clearFilters} className="bg-green-600 hover:bg-green-700 text-white">
+                <Button
+                  onClick={clearFilters}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
                   Clear Filters
                 </Button>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredAndSortedDoctors.map((doctor) => (
-                  <Card key={doctor.id} className="overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700 transition-colors">
+                  <Card
+                    key={doctor.id}
+                    className="overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700 transition-colors"
+                  >
                     <div className="flex flex-col sm:flex-row">
                       <div className="relative sm:w-40 h-48 sm:h-auto flex-shrink-0">
-                        <Image
-                          src={doctor.profilePhoto}
-                          alt={doctor.name}
-                          fill
-                          className="object-cover"
-                        />
+                       <Image
+  src={doctor.profilePhoto}
+  alt={doctor.name}
+  fill
+  unoptimized={true}
+  className="object-cover"
+/>
                         {doctor.isOnline && (
                           <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                             <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
@@ -1239,7 +1343,9 @@ export default function AppointmentBookingPage() {
                                 <CheckCircle2 className="w-5 h-5 text-green-600" />
                               )}
                             </h3>
-                            <p className="text-sm text-green-600 dark:text-green-400">{doctor.specialty}</p>
+                            <p className="text-sm text-green-600 dark:text-green-400">
+                              {doctor.specialty}
+                            </p>
                           </div>
                         </div>
 
@@ -1252,13 +1358,15 @@ export default function AppointmentBookingPage() {
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
                             {doctor.rating}
                           </span>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">({doctor.reviewCount})</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            ({doctor.reviewCount})
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-2 mb-4 text-sm">
                           <Calendar className="w-4 h-4 text-gray-400" />
                           <span className="text-gray-600 dark:text-gray-400">
-                            Next available:{' '}
+                            Next available:{" "}
                             <span className="font-medium text-gray-900 dark:text-white">
                               {doctor.nextAvailable}
                             </span>
@@ -1267,8 +1375,12 @@ export default function AppointmentBookingPage() {
 
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">Consultation Fee</span>
-                            <p className="text-lg font-bold text-gray-900 dark:text-white">₹{doctor.price}</p>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              Consultation Fee
+                            </span>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                              ₹{doctor.price}
+                            </p>
                           </div>
                           <Link href={`/booking/${doctor.id}`}>
                             <Button className="bg-green-600 hover:bg-green-700 text-white">

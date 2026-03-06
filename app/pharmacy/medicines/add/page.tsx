@@ -1,10 +1,7 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,11 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Save, Plus, X, Menu } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Menu, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Sidebar from '@/components/pharmacy/Sidebar';
+import { medicinesApi } from '@/lib/api/medicinesApi';
 
-// Mock Data (move to separate file later)
 const categories = [
   "Antibiotics",
   "Pain Relief",
@@ -40,48 +37,21 @@ const units = [
   "Bottle"
 ];
 
-const medicines = [
-  {
-    id: "1",
-    name: "Amoxicillin 500mg",
-    generic: "Amoxicillin",
-    brand: "Amoxil",
-    category: "Antibiotics",
-    unit: "Capsule",
-    purchasePrice: 8.50,
-    sellingPrice: 12.50,
-    mrp: 15.00,
-    taxPercent: 12,
-    isActive: true
-  },
-  {
-    id: "2",
-    name: "Paracetamol 650mg",
-    generic: "Paracetamol",
-    brand: "Calpol",
-    category: "Pain Relief",
-    unit: "Tablet",
-    purchasePrice: 3.25,
-    sellingPrice: 5.75,
-    mrp: 7.00,
-    taxPercent: 5,
-    isActive: true
-  }
-];
-
 export default function MedicineFormPage() {
   const router = useRouter();
   const params = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Get id from params - works for both /add and /[id]
   const id = params?.id as string | undefined;
   const isEdit = id && id !== 'add';
-  
+
   const [form, setForm] = useState({
     name: "",
-    generic: "",
-    brand: "",
+    genericName: "",
+    brandName: "",
     category: "",
     unit: "",
     purchasePrice: "",
@@ -94,23 +64,39 @@ export default function MedicineFormPage() {
 
   // Load existing data if in edit mode
   useEffect(() => {
-    if (isEdit) {
-      const existing = medicines.find((m) => m.id === id);
-      if (existing) {
-        setForm({
-          name: existing.name || "",
-          generic: existing.generic || "",
-          brand: existing.brand || "",
-          category: existing.category || "",
-          unit: existing.unit || "",
-          purchasePrice: existing.purchasePrice?.toString() || "",
-          sellingPrice: existing.sellingPrice?.toString() || "",
-          mrp: existing.mrp?.toString() || "",
-          taxPercent: existing.taxPercent?.toString() || "",
-        });
-      }
+    if (isEdit && id) {
+      const fetchMedicine = async () => {
+        setIsLoading(true);
+        try {
+          const response = await medicinesApi.getMedicine(Number(id));
+          if (response.data.success) {
+            const data = response.data.data;
+            setForm({
+              name: data.name || "",
+              genericName: data.generic_name || "",
+              brandName: data.brand_name || "",
+              category: data.category || "",
+              unit: data.unit || "",
+              purchasePrice: data.purchase_price?.toString() || "",
+              sellingPrice: data.selling_price?.toString() || "",
+              mrp: data.mrp?.toString() || "",
+              taxPercent: data.tax_percent?.toString() || "",
+            });
+          } else {
+            toast.error("Failed to load medicine data");
+            router.push("/pharmacy/medicines");
+          }
+        } catch (error) {
+          console.error("Error fetching medicine:", error);
+          toast.error("An error occurred while loading medicine data");
+          router.push("/pharmacy/medicines");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchMedicine();
     }
-  }, [id, isEdit]);
+  }, [isEdit, id, router]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -125,39 +111,82 @@ export default function MedicineFormPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (addAnother: boolean) => {
+  const handleSubmit = async (addAnother: boolean) => {
     if (!validate()) return;
-    
-    // Show success toast
-    toast.success(`Medicine ${isEdit ? "updated" : "saved"} successfully`, {
-      description: `${form.name} has been ${isEdit ? "updated" : "added"} to the medicine master.`,
-      duration: 5000,
-    });
-    
-    if (addAnother) {
-      // Reset form but keep category and unit for convenience
-      setForm({
-        name: "",
-        generic: "",
-        brand: "",
-        category: form.category,
-        unit: form.unit,
-        purchasePrice: "",
-        sellingPrice: "",
-        mrp: "",
-        taxPercent: "",
-      });
-      setErrors({});
-      
-      // Optional: Show another toast indicating form is ready for next entry
-      toast.info("Ready for next medicine", {
-        description: "You can add another medicine now.",
-        duration: 3000,
-      });
-    } else {
-      router.push("/pharmacy/medicines");
+
+    setIsSubmitting(true);
+
+    // Prepare payload – convert price strings to numbers
+    const payload = {
+      name: form.name,
+      genericName: form.genericName || undefined,
+      brandName: form.brandName || undefined,
+      category: form.category,
+      unit: form.unit,
+      purchasePrice: parseFloat(form.purchasePrice),
+      sellingPrice: parseFloat(form.sellingPrice),
+      mrp: form.mrp ? parseFloat(form.mrp) : undefined,
+      taxPercent: form.taxPercent ? parseFloat(form.taxPercent) : 0,
+    };
+
+    try {
+      let response;
+      if (isEdit && id) {
+        response = await medicinesApi.updateMedicine(Number(id), payload);
+      } else {
+        response = await medicinesApi.createMedicine(payload);
+      }
+
+      // Handle both Axios-wrapped and unwrapped responses
+      const isSuccess = response?.data?.success === true || (response as any)?.success === true;
+
+      if (isSuccess) {
+        toast.success(`Medicine ${isEdit ? "updated" : "saved"} successfully`, {
+          description: `${form.name} has been ${isEdit ? "updated" : "added"} to the medicine master.`,
+        });
+
+        if (addAnother) {
+          // Reset form but keep category and unit for convenience
+          setForm({
+            name: "",
+            genericName: "",
+            brandName: "",
+            category: form.category,
+            unit: form.unit,
+            purchasePrice: "",
+            sellingPrice: "",
+            mrp: "",
+            taxPercent: "",
+          });
+          setErrors({});
+          toast.info("Ready for next medicine", {
+            description: "You can add another medicine now.",
+          });
+        } else {
+          router.push("/pharmacy/medicines");
+        }
+      } else {
+        const errorMsg = response?.data?.message || (response as any)?.message || "Operation failed";
+        toast.error(errorMsg);
+      }
+    } catch (error: any) {
+      console.error("Submit error:", error);
+      toast.error(error?.response?.data?.message || "An error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -173,10 +202,8 @@ export default function MedicineFormPage() {
         )}
       </button>
 
-      {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      {/* Backdrop for mobile */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
@@ -184,7 +211,6 @@ export default function MedicineFormPage() {
         />
       )}
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col w-full lg:ml-0 min-w-0">
         {/* Header */}
         <header className="sticky top-0 z-30 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
@@ -192,7 +218,7 @@ export default function MedicineFormPage() {
             <div className="flex items-center gap-3">
               {/* Spacer for mobile menu */}
               <div className="w-8 lg:hidden"></div>
-              
+
               {/* Back Button */}
               <button
                 onClick={() => router.push("/pharmacy/medicines")}
@@ -200,7 +226,7 @@ export default function MedicineFormPage() {
               >
                 <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </button>
-              
+
               <div>
                 <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {isEdit ? "Edit Medicine" : "Add Medicine"}
@@ -233,6 +259,7 @@ export default function MedicineFormPage() {
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className={errors.name ? "border-red-500" : ""}
                       placeholder="Enter medicine name"
+                      disabled={isSubmitting}
                     />
                     {errors.name && (
                       <p className="text-xs text-red-500">{errors.name}</p>
@@ -245,9 +272,10 @@ export default function MedicineFormPage() {
                       Generic Name
                     </label>
                     <Input
-                      value={form.generic}
-                      onChange={(e) => setForm({ ...form, generic: e.target.value })}
+                      value={form.genericName}
+                      onChange={(e) => setForm({ ...form, genericName: e.target.value })}
                       placeholder="Enter generic name"
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -257,9 +285,10 @@ export default function MedicineFormPage() {
                       Brand
                     </label>
                     <Input
-                      value={form.brand}
-                      onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                      value={form.brandName}
+                      onChange={(e) => setForm({ ...form, brandName: e.target.value })}
                       placeholder="Enter brand name"
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -271,6 +300,7 @@ export default function MedicineFormPage() {
                     <Select
                       value={form.category}
                       onValueChange={(value) => setForm({ ...form, category: value })}
+                      disabled={isSubmitting}
                     >
                       <SelectTrigger className={errors.category ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select category" />
@@ -294,6 +324,7 @@ export default function MedicineFormPage() {
                     <Select
                       value={form.unit}
                       onValueChange={(value) => setForm({ ...form, unit: value })}
+                      disabled={isSubmitting}
                     >
                       <SelectTrigger className={errors.unit ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select unit" />
@@ -331,6 +362,7 @@ export default function MedicineFormPage() {
                       onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })}
                       className={errors.purchasePrice ? "border-red-500" : ""}
                       placeholder="0.00"
+                      disabled={isSubmitting}
                     />
                     {errors.purchasePrice && (
                       <p className="text-xs text-red-500">{errors.purchasePrice}</p>
@@ -349,6 +381,7 @@ export default function MedicineFormPage() {
                       onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })}
                       className={errors.sellingPrice ? "border-red-500" : ""}
                       placeholder="0.00"
+                      disabled={isSubmitting}
                     />
                     {errors.sellingPrice && (
                       <p className="text-xs text-red-500">{errors.sellingPrice}</p>
@@ -366,6 +399,7 @@ export default function MedicineFormPage() {
                       value={form.mrp}
                       onChange={(e) => setForm({ ...form, mrp: e.target.value })}
                       placeholder="0.00"
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -381,6 +415,7 @@ export default function MedicineFormPage() {
                       onChange={(e) => setForm({ ...form, taxPercent: e.target.value })}
                       className={errors.taxPercent ? "border-red-500" : ""}
                       placeholder="0"
+                      disabled={isSubmitting}
                     />
                     {errors.taxPercent && (
                       <p className="text-xs text-red-500">{errors.taxPercent}</p>
@@ -394,19 +429,29 @@ export default function MedicineFormPage() {
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
               <Button
                 onClick={() => handleSubmit(false)}
+                disabled={isSubmitting}
                 className="w-full sm:w-auto"
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {isEdit ? "Update" : "Save"} Medicine
               </Button>
-              
+
               {!isEdit && (
                 <Button
                   variant="outline"
                   onClick={() => handleSubmit(true)}
+                  disabled={isSubmitting}
                   className="w-full sm:w-auto"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
                   Save & Add Another
                 </Button>
               )}
@@ -414,6 +459,7 @@ export default function MedicineFormPage() {
               <Button
                 variant="ghost"
                 onClick={() => router.push("/pharmacy/medicines")}
+                disabled={isSubmitting}
                 className="w-full sm:w-auto"
               >
                 Cancel
