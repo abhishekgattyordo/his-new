@@ -1,6 +1,9 @@
+
+
+
 "use client";
 
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, useEffect } from "react";
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import React from "react";
@@ -10,53 +13,9 @@ import VisitHistoryModal from "@/components/doctor/VisitHistoryModal";
 import AddMedicationModal from "@/components/doctor/AddMedicationModal";
 import AddVitalsModal from "@/components/doctor/AddVitalsModal";
 
-// Sample patient data (you'd typically fetch this from an API/database)
-const patientData = {
-  "p001": {
-    id: "p001",
-    name: "John Doe",
-    age: 54,
-    gender: "M",
-    patientId: "PAT1001",
-    allergies: ["Penicillin (Severe)"],
-    status: "Active",
-    avatar: "JD",
-    avatarColor: "blue",
-  },
-  "p002": {
-    id: "p002",
-    name: "Jane Smith",
-    age: 32,
-    gender: "F",
-    patientId: "PAT1002",
-    allergies: ["Sulfa"],
-    status: "Critical",
-    avatar: "JS",
-    avatarColor: "green",
-  },
-  "p003": {
-    id: "p003",
-    name: "Michael Brown",
-    age: 45,
-    gender: "M",
-    patientId: "PAT1003",
-    allergies: ["None"],
-    status: "Active",
-    avatar: "MB",
-    avatarColor: "purple",
-  },
-  "p004": {
-    id: "p004",
-    name: "Emily Chen",
-    age: 28,
-    gender: "F",
-    patientId: "PAT1004",
-    allergies: ["Latex"],
-    status: "Active",
-    avatar: "EC",
-    avatarColor: "orange",
-  },
-};
+// Import API clients
+import { patientsApi } from "@/lib/api/registration";
+import { appointmentsApi } from "@/lib/api/appointments";
 
 // Types
 interface Medication {
@@ -81,8 +40,25 @@ interface Vital {
   recordedBy: string;
 }
 
+// Patient type used in context
+interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  patientId: string;
+  allergies: string[];
+  status: string;
+  phone: string;
+  email: string;
+  city: string;
+  bloodGroup: string;
+  avatar: string;
+  avatarColor: string;
+}
+
 interface EHRContextType {
-  patient: typeof patientData[keyof typeof patientData];
+  patient: Patient | null;
   medications: Medication[];
   setMedications: React.Dispatch<React.SetStateAction<Medication[]>>;
   vitals: Vital[];
@@ -100,6 +76,8 @@ interface EHRContextType {
   handleAddMedication: () => void;
   handleAddVitals: () => void;
   handleDeleteMedication: (id: number) => void;
+  loading: boolean;
+  error: string | null;
 }
 
 const EHRContext = createContext<EHRContextType | undefined>(undefined);
@@ -110,48 +88,47 @@ export const useEHR = () => {
   return context;
 };
 
+// Helper functions
+const calculateAge = (dob: string): number => {
+  if (!dob) return 0;
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+};
+
+const getAvatarColor = (id: string): string => {
+  const colors = ["blue", "green", "purple", "orange", "red"];
+  const lastChar = id.slice(-1);
+  const num = parseInt(lastChar, 10);
+  const index = isNaN(num) ? 0 : num % colors.length;
+  return colors[index];
+};
+
+const formatGender = (gender: string): string => {
+  if (!gender) return "Other";
+  const g = gender.toLowerCase();
+  if (g === "male") return "M";
+  if (g === "female") return "F";
+  return "Other";
+};
+
 export default function EHRLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const patientId = params.patientId as string;
 
-  const patient = patientData[patientId as keyof typeof patientData] || {
-    id: patientId,
-    name: "Unknown Patient",
-    age: "--",
-    gender: "--",
-    patientId: patientId,
-    allergies: ["Unknown"],
-    status: "Unknown",
-    avatar: "UN",
-    avatarColor: "gray",
-  };
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [vitals, setVitals] = useState<Vital[]>([]);
+  const [visitHistory, setVisitHistory] = useState<any[]>([]);
+  const [appointmentsList, setAppointmentsList] = useState<any[]>([]);
 
-  const [medications, setMedications] = useState<Medication[]>([
-    {
-      id: 1,
-      name: "Amoxicillin",
-      category: "Antibiotic",
-      dosage: "500mg - 2x Daily",
-      duration: "7 Days",
-      color: "blue",
-    },
-    {
-      id: 2,
-      name: "Paracetamol",
-      category: "Analgesic",
-      dosage: "500mg - PRN",
-      duration: "3 Days",
-      color: "amber",
-    },
-  ]);
-
-  const [vitals, setVitals] = useState<Vital[]>([
-    { id: 1, date: "Oct 12, 2023", time: "09:30 AM", bp: "120/80", hr: 72, temp: 36.6, weight: 68, rr: 16, spo2: 98, recordedBy: "Dr. Sarah Jenkins" },
-    { id: 2, date: "Oct 10, 2023", time: "02:15 PM", bp: "118/78", hr: 68, temp: 36.4, weight: 68, rr: 14, spo2: 99, recordedBy: "Nurse Thompson" },
-    { id: 3, date: "Oct 5, 2023", time: "11:00 AM", bp: "122/82", hr: 74, temp: 36.7, weight: 68.2, rr: 16, spo2: 97, recordedBy: "Dr. Sarah Jenkins" },
-    { id: 4, date: "Sep 28, 2023", time: "10:30 AM", bp: "125/85", hr: 76, temp: 36.8, weight: 68.5, rr: 18, spo2: 96, recordedBy: "Dr. Smith" },
-  ]);
+  useEffect(() => {
+  console.log("Appointments List:", appointmentsList);
+}, [appointmentsList]);
 
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showAddMedicationModal, setShowAddMedicationModal] = useState(false);
@@ -159,14 +136,98 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
   const [newMedication, setNewMedication] = useState({ name: "", category: "", dosage: "", duration: "" });
   const [newVitals, setNewVitals] = useState({ bp: "", hr: "", temp: "", weight: "", rr: "", spo2: "" });
 
-  const visitHistory = [
-    { date: "Oct 12, 2023", type: "Routine Checkup", doctor: "Dr. Smith", notes: "Annual physical, vitals normal", diagnosis: "Healthy" },
-    { date: "Aug 05, 2023", type: "Teleconsultation", doctor: "Dr. Adams", notes: "Follow-up on medication", diagnosis: "Hypertension - stable" },
-    { date: "Feb 10, 2023", type: "Emergency Visit", doctor: "Dr. Lee", notes: "Severe headache, dizziness", diagnosis: "Migraine" },
-    { date: "Nov 15, 2022", type: "Follow-up", doctor: "Dr. Chen", notes: "Lab results review", diagnosis: "Vitamin D deficiency" },
-    { date: "Sep 03, 2022", type: "Annual Checkup", doctor: "Dr. Williams", notes: "Routine screening", diagnosis: "Healthy" },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch patient details and appointments
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!patientId) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Fetch patient details
+        const patientRes = await fetch(`/api/registration?patientId=${patientId}`);
+        const patientJson = await patientRes.json();
+
+        if (!patientJson.success) {
+          throw new Error(patientJson.message || "Failed to fetch patient");
+        }
+
+        const patientData = patientJson.data;
+
+        // Fetch appointments
+        let appointments = [];
+       try {
+  const aptRes = await appointmentsApi.getPatientAppointments(patientId);
+
+  console.log("Appointments API response:", aptRes.data);
+
+ appointments = aptRes.data || [];
+
+  console.log("Appointments extracted:", appointments);
+
+} catch (aptErr) {
+  console.error("Appointments API error:", aptErr);
+  appointments = [];
+}
+
+        // Store raw appointments
+        setAppointmentsList(appointments);
+
+        // Transform patient data
+        const transformedPatient: Patient = {
+          id: patientData.patient_id,
+          name: patientData.full_name_en || "Unknown",
+          age: calculateAge(patientData.dob),
+          gender: formatGender(patientData.gender),
+          patientId: patientData.patient_id,
+          phone: patientData.phone || "",
+          email: patientData.email || "",
+          city: patientData.city || "",
+          bloodGroup: patientData.blood_group || "",
+          allergies: patientData.allergy
+            ? [patientData.allergy]
+            : patientData.allergies || [],
+          status: patientData.status || "Active",
+          avatar:
+            patientData.full_name_en
+              ?.split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .substring(0, 2)
+              .toUpperCase() || "PT",
+          avatarColor: getAvatarColor(patientData.patient_id),
+        };
+
+        // Transform appointments to visit history format
+       const history = appointments.map((apt: any) => ({
+  date: new Date(apt.date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }),
+  type: apt.type === "in-person" ? "In-Person" : "Teleconsultation",
+  doctor: apt.doctor_name || "Dr. Unknown",
+  notes: apt.notes || "No notes",
+  diagnosis: apt.status || "Completed",
+}));
+
+        setPatient(transformedPatient);
+        setVisitHistory(history);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load patient data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [patientId]);
+
+  // Handlers for medications and vitals
   const handleAddMedication = () => {
     if (newMedication.name && newMedication.dosage) {
       const colors = ["blue", "amber", "green", "purple", "pink"];
@@ -209,12 +270,13 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
     setMedications(medications.filter((med) => med.id !== id));
   };
 
-  // Map avatar colors to actual Tailwind classes
+  // Map avatar colors to Tailwind classes (used in JSX)
   const avatarColorMap: Record<string, string> = {
     blue: "bg-blue-600",
     green: "bg-green-600",
     purple: "bg-purple-600",
     orange: "bg-orange-600",
+    red: "bg-red-600",
     gray: "bg-gray-600",
   };
 
@@ -227,6 +289,43 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
 
   // Determine active tab from pathname
   const activeTab = pathname.split('/').pop() || "current-visit";
+
+  // Compute today's appointment doctor (if any)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayAppt = appointmentsList.find(
+  apt => apt.date?.split('T')[0] === todayStr
+);
+  const todayDoctor = todayAppt ? todayAppt.doctor_name : "";
+
+  // Show loading or error
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f6f7f8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#137fec] border-t-transparent animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading patient data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="min-h-screen bg-[#f6f7f8] flex items-center justify-center p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md text-center">
+          <span className="material-symbols-outlined text-red-500 text-5xl mb-4">error</span>
+          <h2 className="text-xl font-bold text-red-700 dark:text-red-400 mb-2">Failed to Load Patient</h2>
+          <p className="text-red-600 dark:text-red-300 mb-4">{error || "Patient not found"}</p>
+          <Link
+            href="/doctor/patients"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Back to Patients
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <EHRContext.Provider
@@ -249,9 +348,11 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
         handleAddMedication,
         handleAddVitals,
         handleDeleteMedication,
+        loading,
+        error,
       }}
     >
-      {/* Global styles - must be direct children of the provider, not inside any div */}
+      {/* Global styles */}
       <style jsx global>{`
         body {
           font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -259,8 +360,8 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
       `}</style>
 
       <div className="bg-[#f6f7f8] min-h-screen text-slate-900 antialiased flex flex-col">
-        <main className="flex-1 flex flex-col max-w-[1440px] mx-auto w-full px- md:px-2 py-4 gap-4">
-          {/* Profile Header - reduced padding */}
+        <main className="flex-1 flex flex-col max-w-[1440px] mx-auto w-full px-2 py-4 gap-4">
+          {/* Profile Header */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <div
@@ -293,7 +394,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
                       {patient.age} Yrs, {patient.gender}
                     </span>
                   </span>
-                  {patient.allergies[0] !== "None" && (
+                  {patient.allergies && patient.allergies[0] !== "None" && (
                     <>
                       <span className="hidden sm:inline text-slate-300">•</span>
                       <span className="flex items-center gap-1.5 text-red-600 font-medium">
@@ -307,7 +408,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Layout Grid - reduced gap */}
+          {/* Layout Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             {/* Left Sidebar: Timeline */}
             <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
@@ -334,11 +435,13 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
                     <div className="pb-8">
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-3 shadow-sm">
                         <p className="text-[#137fec] font-bold text-sm">Today's Visit</p>
-                        <p className="text-slate-600 text-xs mt-0.5">In Progress • Dr. Sarah Jenkins</p>
+                        <p className="text-slate-600 text-xs mt-0.5">
+                          In Progress • {todayDoctor}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Past visits */}
+                    {/* Past visits from fetched history */}
                     {visitHistory.slice(0, 3).map((visit, idx) => (
                       <React.Fragment key={idx}>
                         <div className="flex flex-col items-center pt-1">
@@ -409,7 +512,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      {/* Fonts and icon styles - also direct children */}
+      {/* Fonts and icons */}
       <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <style jsx global>{`
