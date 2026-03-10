@@ -19,8 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, Bed, AlertTriangle, CheckCircle2, Menu, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Sidebar from '@/components/pharmacy/Sidebar';
-import { salesApi } from '@/lib/api/salesApi';
-import { deliveryApi } from '@/lib/api/delivery';
+
 // Types
 interface IPOrderItem {
   id: number;                      // sale_item_id

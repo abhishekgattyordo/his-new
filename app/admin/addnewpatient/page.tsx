@@ -186,66 +186,71 @@ function AddNewPatientContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
+  e.preventDefault();
+  const validationErrors = validateForm();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+
+  setIsSubmitting(true);
+  setErrors({});
+
+  try {
+    const payload: any = {
+      fullNameEn: formData.fullNameEn,
+      fullNameHi: formData.fullNameHi || undefined,
+      dob: formData.dob,
+      gender: formData.gender.toLowerCase(),
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      country: formData.country,
+      pincode: formData.pincode,
+      phone: formData.phone,
+      email: formData.email,
+      blood_group: formData.blood_group || undefined,
+      allergies: formData.allergies.filter(a => a.trim() !== ''),
+      chronicConditions: formData.chronicConditions.filter(c => c.trim() !== ''),
+      medications: formData.medications || undefined,
+      insuranceProvider: formData.insuranceProvider || undefined,
+      policyNumber: formData.policyNumber || undefined,
+      validUntil: formData.validUntil || undefined,
+      groupId: formData.groupId || undefined,
+    };
+
+    if (isEditMode && editPatientId) {
+      payload.patientId = editPatientId;
     }
 
-    setIsSubmitting(true);
-    setErrors({});
+    console.log('Submit payload:', payload);
 
-    try {
-      const payload: any = {
-        fullNameEn: formData.fullNameEn,
-        fullNameHi: formData.fullNameHi || undefined,
-        dob: formData.dob,
-        gender: formData.gender.toLowerCase(),
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        country: formData.country,
-        pincode: formData.pincode,
-        phone: formData.phone,
-        email: formData.email,
-        blood_group: formData.blood_group || undefined,
-        allergies: formData.allergies.filter(a => a.trim() !== ''),
-        chronicConditions: formData.chronicConditions.filter(c => c.trim() !== ''),
-        medications: formData.medications || undefined,
-        insuranceProvider: formData.insuranceProvider || undefined,
-        policyNumber: formData.policyNumber || undefined,
-        validUntil: formData.validUntil || undefined,
-        groupId: formData.groupId || undefined,
-      };
+    const response = isEditMode
+      ? await patientsApi.adminUpdatePatient(payload)
+      : await patientsApi.adminCreatePatient(payload);
 
-      if (isEditMode && editPatientId) {
-        payload.patientId = editPatientId;
-      }
+    // Normalize response (handles both Axios and direct response)
+    const serverResponse = response.data || response;
+    console.log('Server response:', serverResponse);
 
-      console.log('Submit payload:', payload);
-
-      const response = isEditMode
-        ? await patientsApi.adminUpdatePatient(payload)
-        : await patientsApi.adminCreatePatient(payload);
-
-      if (response.data?.success) {
-        toast.success(isEditMode ? 'Patient updated successfully!' : 'Patient added successfully!');
-        router.push('/admin/patientmanagement');
+    // Success if patientId is present (for create) or success flag is true (for future updates)
+    if (serverResponse.patientId || serverResponse.success) {
+      toast.success(isEditMode ? 'Patient updated successfully!' : 'Patient added successfully!');
+      router.push('/admin/patientmanagement');
+    } else {
+      if (serverResponse.errors) {
+        setErrors(serverResponse.errors);
       } else {
-        if (response.data?.errors) {
-          setErrors(response.data.errors);
-        } else {
-          toast.error(response.data?.message || 'Operation failed');
-        }
+        toast.error(serverResponse.message || 'Operation failed');
       }
-    } catch (error) {
-      console.error('Submit error:', error);
-      toast.error('An error occurred while saving. Check console.');
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  } catch (error) {
+    console.error('Submit error:', error);
+    toast.error('An error occurred while saving. Check console.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 

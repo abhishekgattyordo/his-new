@@ -3,11 +3,11 @@
 
 // "use client";
 
-// import React, { useState } from "react";
+// import React, { useState, useEffect } from "react";
 // import Header from "@/components/admin/Header";
 // import Sidebar from "@/components/admin/Sidebar";
 // import { useRouter } from "next/navigation";
-// import { Trash2, Edit, Filter, Plus,Calendar as CalendarIcon } from "lucide-react";
+// import { Trash2, Edit, Filter, Plus, Calendar as CalendarIcon } from "lucide-react";
 // import {
 //   Users,
 //   Activity,
@@ -15,17 +15,18 @@
 //   TrendingUp,
 // } from "lucide-react";
 
-// // shadcn/ui components (make sure they are installed)
+// // shadcn/ui components
 // import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 // import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 // import { Button } from "@/components/ui/button";
 // import { Input } from "@/components/ui/input";
 // import { Label } from "@/components/ui/label";
 // import { Menu, X } from 'lucide-react';
+// import { patientsApi } from '@/lib/api/registration';
 
-// // Patient data type definition
+// // ==================== Types & Interfaces ====================
 // interface Patient {
-//   id: number;
+//   id: string;
 //   name: string;
 //   email: string;
 //   avatarUrl: string;
@@ -42,211 +43,6 @@
 //   statusColor: string;
 // }
 
-// // Patient data JSON array
-// const patientsData: Patient[] = [
-//   {
-//     id: 1,
-//     name: "Robert Johnson",
-//     email: "robert.j@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-//     age: 42,
-//     gender: "Male",
-//     bloodGroup: "O+",
-//     condition: "Diabetes Type 2",
-//     conditionColor:
-//       "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-//     department: "Endocrinology",
-//     contact: "+1 (555) 123-4567",
-//     lastVisit: "Jan 15, 2024",
-//     nextAppointment: "Feb 20, 2024",
-//     status: "active",
-//     statusColor: "text-green-700 dark:text-green-400",
-//   },
-//   {
-//     id: 2,
-//     name: "Sarah Williams",
-//     email: "sarah.w@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop",
-//     age: 35,
-//     gender: "Female",
-//     bloodGroup: "A+",
-//     condition: "Hypertension",
-//     conditionColor:
-//       "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-//     department: "Cardiology",
-//     contact: "+1 (555) 234-5678",
-//     lastVisit: "Jan 10, 2024",
-//     nextAppointment: "Feb 15, 2024",
-//     status: "active",
-//     statusColor: "text-green-700 dark:text-green-400",
-//   },
-//   {
-//     id: 3,
-//     name: "Michael Chen",
-//     email: "michael.c@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop",
-//     age: 58,
-//     gender: "Male",
-//     bloodGroup: "B+",
-//     condition: "Arthritis",
-//     conditionColor:
-//       "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-//     department: "Orthopedics",
-//     contact: "+1 (555) 345-6789",
-//     lastVisit: "Jan 5, 2024",
-//     nextAppointment: "Jan 30, 2024",
-//     status: "critical",
-//     statusColor: "text-rose-700 dark:text-rose-400",
-//   },
-//   {
-//     id: 4,
-//     name: "Emma Davis",
-//     email: "emma.d@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-//     age: 28,
-//     gender: "Female",
-//     bloodGroup: "AB+",
-//     condition: "Pregnancy",
-//     conditionColor:
-//       "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
-//     department: "Gynecology",
-//     contact: "+1 (555) 456-7890",
-//     lastVisit: "Jan 12, 2024",
-//     nextAppointment: "Feb 10, 2024",
-//     status: "active",
-//     statusColor: "text-green-700 dark:text-green-400",
-//   },
-//   {
-//     id: 5,
-//     name: "James Wilson",
-//     email: "james.w@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-//     age: 65,
-//     gender: "Male",
-//     bloodGroup: "O-",
-//     condition: "COPD",
-//     conditionColor:
-//       "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-//     department: "Pulmonology",
-//     contact: "+1 (555) 567-8901",
-//     lastVisit: "Dec 20, 2023",
-//     nextAppointment: "Feb 5, 2024",
-//     status: "inactive",
-//     statusColor: "text-slate-700 dark:text-slate-400",
-//   },
-//   {
-//     id: 6,
-//     name: "Olivia Martinez",
-//     email: "olivia.m@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop",
-//     age: 31,
-//     gender: "Female",
-//     bloodGroup: "A-",
-//     condition: "Migraine",
-//     conditionColor:
-//       "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
-//     department: "Neurology",
-//     contact: "+1 (555) 678-9012",
-//     lastVisit: "Jan 8, 2024",
-//     nextAppointment: "Mar 1, 2024",
-//     status: "active",
-//     statusColor: "text-green-700 dark:text-green-400",
-//   },
-//   {
-//     id: 7,
-//     name: "David Lee",
-//     email: "david.l@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop",
-//     age: 47,
-//     gender: "Male",
-//     bloodGroup: "B-",
-//     condition: "High Cholesterol",
-//     conditionColor:
-//       "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-//     department: "Internal Medicine",
-//     contact: "+1 (555) 789-0123",
-//     lastVisit: "Jan 3, 2024",
-//     nextAppointment: "Feb 25, 2024",
-//     status: "active",
-//     statusColor: "text-green-700 dark:text-green-400",
-//   },
-//   {
-//     id: 8,
-//     name: "Sophia Brown",
-//     email: "sophia.b@email.com",
-//     avatarUrl:
-//       "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=150&h=150&fit=crop",
-//     age: 52,
-//     gender: "Female",
-//     bloodGroup: "O+",
-//     condition: "Osteoporosis",
-//     conditionColor:
-//       "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
-//     department: "Rheumatology",
-//     contact: "+1 (555) 890-1234",
-//     lastVisit: "Dec 28, 2023",
-//     nextAppointment: "Feb 18, 2024",
-//     status: "inactive",
-//     statusColor: "text-slate-700 dark:text-slate-400",
-//   },
-// ];
-
-// // Stats data
-// const statsData = [
-//   {
-//     title: "Total Patients",
-//     value: "2,847",
-//     color: "blue",
-//     icon: <Users />,
-//   },
-//   {
-//     title: "Active Cases",
-//     value: "1,924",
-//     color: "green",
-//     icon: <Activity />,
-//   },
-//   {
-//     title: "ICU Patients",
-//     value: "42",
-//     color: "red",
-//     icon: <HeartPulse />,
-//   },
-//   {
-//     title: "Monthly Admissions",
-//     value: "187",
-//     color: "amber",
-//     icon: <TrendingUp />,
-//   },
-// ];
-
-// // Filter data
-// const filtersData = [
-//   { label: "All Patients", isActive: true },
-//   { label: "Active", isActive: false },
-//   { label: "Critical", isActive: false },
-//   { label: "Inactive", isActive: false },
-// ];
-
-// // Types for filters
-// interface ColumnFilter {
-//   column: string;
-//   value: string;
-// }
-
-// interface DateRangeFilter {
-//   column: string;
-//   from: string;
-//   to: string;
-// }
-
-// // Reusable ColumnFilter component (text/select)
 // interface ColumnFilterProps {
 //   column: string;
 //   placeholder?: string;
@@ -255,6 +51,13 @@
 //   currentValue?: string;
 // }
 
+// interface DateRangeFilterProps {
+//   column: string;
+//   onFilter: (column: string, from: string, to: string) => void;
+//   currentRange?: { from: string; to: string };
+// }
+
+// // ==================== Filter Components ====================
 // function ColumnFilter({ column, placeholder = "Filter...", options, onFilter, currentValue }: ColumnFilterProps) {
 //   const [open, setOpen] = useState(false);
 
@@ -306,13 +109,6 @@
 //       </PopoverContent>
 //     </Popover>
 //   );
-// }
-
-// // Date Range Filter Component
-// interface DateRangeFilterProps {
-//   column: string;
-//   onFilter: (column: string, from: string, to: string) => void;
-//   currentRange?: { from: string; to: string };
 // }
 
 // function DateRangeFilter({ column, onFilter, currentRange }: DateRangeFilterProps) {
@@ -382,67 +178,174 @@
 //   );
 // }
 
+// // ==================== Main Component ====================
 // const PatientManagementPage: React.FC = () => {
 //   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 //   const [searchQuery, setSearchQuery] = useState("");
 //   const [selectedFilter, setSelectedFilter] = useState("All Patients");
-//   const [columnFilters, setColumnFilters] = useState<ColumnFilter[]>([]);
+// const [columnFilters, setColumnFilters] = useState<{ column: string; value: string }[]>([]);
 //   const [dateFilters, setDateFilters] = useState<Record<string, { from: string; to: string }>>({});
+//   const [patients, setPatients] = useState<Patient[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<string | null>(null);
 //   const router = useRouter();
 
-//   const toggleSidebar = () => {
-//     setIsSidebarOpen(!isSidebarOpen);
+//   // Stats data
+//   const [statsData, setStatsData] = useState([
+//     { title: "Total Patients", value: "0", color: "blue", icon: <Users /> },
+//     { title: "Active Cases", value: "0", color: "green", icon: <Activity /> },
+//     { title: "ICU Patients", value: "0", color: "red", icon: <HeartPulse /> },
+//     { title: "Monthly Admissions", value: "0", color: "amber", icon: <TrendingUp /> },
+//   ]);
+
+//   // Filter data (status filters)
+//   const filtersData = [
+//     { label: "All Patients", isActive: true },
+//     { label: "Active", isActive: false },
+//     { label: "Critical", isActive: false },
+//     { label: "Inactive", isActive: false },
+//   ];
+
+//   // Fetch patients on mount
+// useEffect(() => {
+//   const fetchPatients = async () => {
+//     try {
+//       setLoading(true);
+//       const response = await patientsApi.adminGetAllPatients();
+//       console.log('API response:', response); // 👈 check console
+
+//       // Extract the patient array – try different possible structures
+//       let patientsArray: any[] = [];
+//       if (Array.isArray(response.data)) {
+//         // Case 1: API returns array directly
+//         patientsArray = response.data;
+//       } else if (response.data && Array.isArray(response.data.data)) {
+//         // Case 2: API returns { data: [...] }
+//         patientsArray = response.data.data;
+//       } else if (response.data?.success && Array.isArray(response.data.data)) {
+//         // Case 3: API returns { success: true, data: [...] }
+//         patientsArray = response.data.data;
+//       } else {
+//         console.error('Unexpected API response format:', response.data);
+//         setError('Invalid data format from server');
+//         setLoading(false);
+//         return;
+//       }
+
+//       const mapped: Patient[] = patientsArray.map((item: any) => {
+//         // Calculate age from DOB if available
+//         const age = item.dob ? new Date().getFullYear() - new Date(item.dob).getFullYear() : 0;
+
+//         // Derive a condition (you can adjust based on your actual data)
+//         const condition = item.allergies?.[0] || item.chronicConditions?.[0] || item.condition || 'No condition';
+//         const department = item.department || 'General';
+
+//         // Status – default to 'active'
+//         const status = (item.status || 'active') as "active" | "inactive" | "critical";
+
+//         // Avatar placeholder using name initials
+//         const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.full_name_en || 'Patient')}&background=137fec&color=fff&size=128`;
+
+//         // Consistent badge color for condition (you can make dynamic later)
+//         const conditionColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+
+//         return {
+//           id: item.patient_id?.toString() || item.id?.toString() || '',
+//           name: item.full_name_en || `${item.firstName || ''} ${item.lastName || ''}`.trim() || 'Unknown',
+//           email: item.email || '',
+//           avatarUrl,
+//           age,
+//           gender: item.gender
+//             ? (item.gender.charAt(0).toUpperCase() + item.gender.slice(1)) as "Male" | "Female" | "Other"
+//             : "Other",
+//           bloodGroup: item.blood_group || 'Unknown',
+//           condition,
+//           conditionColor,
+//           department,
+//           contact: item.phone || '',
+//           // If your API provides last visit / next appointment, use them; otherwise placeholders
+//           lastVisit: item.last_visit ? new Date(item.last_visit).toLocaleDateString() : 'N/A',
+//           nextAppointment: item.next_appointment ? new Date(item.next_appointment).toLocaleDateString() : 'N/A',
+//           status,
+//           statusColor: getStatusColor(status),
+//         };
+//       });
+
+//       setPatients(mapped);
+//       updateStats(mapped);
+//       setError(null);
+//     } catch (err) {
+//       console.error('Error fetching patients:', err);
+//       setError('An error occurred while fetching patients');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+//   fetchPatients();
+// }, []);
+
+
+//   // Helper to get status color
+//   const getStatusColor = (status: string): string => {
+//     switch (status) {
+//       case 'active': return 'text-green-700 dark:text-green-400';
+//       case 'critical': return 'text-rose-700 dark:text-rose-400';
+//       default: return 'text-slate-700 dark:text-slate-400';
+//     }
 //   };
 
-//   // Helper to parse date strings like "Jan 15, 2024" to comparable format
-//   const parseDate = (dateStr: string): Date => {
-//     return new Date(dateStr);
+//   // Update stats based on patients
+//   const updateStats = (patients: Patient[]) => {
+//     const total = patients.length;
+//     const active = patients.filter(p => p.status === 'active').length;
+//     const critical = patients.filter(p => p.status === 'critical').length;
+//     setStatsData([
+//       { title: "Total Patients", value: total.toString(), color: "blue", icon: <Users /> },
+//       { title: "Active Cases", value: active.toString(), color: "green", icon: <Activity /> },
+//       { title: "ICU Patients", value: critical.toString(), color: "red", icon: <HeartPulse /> },
+//       { title: "Monthly Admissions", value: "187", color: "amber", icon: <TrendingUp /> },
+//     ]);
+//   };
+
+//   // Delete handler
+//   const handleDelete = async (patientId: string) => {
+//     if (!window.confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+//       return;
+//     }
+//     try {
+//       const response = await patientsApi.adminDeletePatient(patientId);
+//       if (response.data?.success) {
+//         setPatients(prev => prev.filter(p => p.id !== patientId));
+//         // Optionally show success toast/message
+//       } else {
+//         alert('Failed to delete patient');
+//       }
+//     } catch (error) {
+//       console.error('Delete error:', error);
+//       alert('An error occurred while deleting');
+//     }
 //   };
 
 //   // Filter patients
-//   const filteredPatients = patientsData.filter((patient) => {
-//     // Global search
+//   const filteredPatients = patients.filter((patient) => {
 //     const matchesSearch = searchQuery === "" ||
 //       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       patient.condition.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       patient.department.toLowerCase().includes(searchQuery.toLowerCase());
 
-//     // Status filter (from chips)
 //     const matchesFilter =
 //       selectedFilter === "All Patients" ||
 //       (selectedFilter === "Active" && patient.status === "active") ||
 //       (selectedFilter === "Critical" && patient.status === "critical") ||
 //       (selectedFilter === "Inactive" && patient.status === "inactive");
 
-//     // Column filters (text)
 //     const matchesColumnFilters = columnFilters.every((filter) => {
 //       const value = patient[filter.column as keyof Patient];
 //       return value?.toString().toLowerCase().includes(filter.value.toLowerCase());
 //     });
 
-//     // Date range filters
-//     const matchesDateFilters = Object.entries(dateFilters).every(([column, range]) => {
-//       if (!range.from && !range.to) return true;
-//       const patientDateStr = patient[column as keyof Patient] as string;
-//       if (!patientDateStr) return false;
-//       const patientDate = parseDate(patientDateStr);
-      
-//       if (range.from && range.to) {
-//         const fromDate = parseDate(range.from);
-//         const toDate = parseDate(range.to);
-//         return patientDate >= fromDate && patientDate <= toDate;
-//       } else if (range.from) {
-//         const fromDate = parseDate(range.from);
-//         return patientDate >= fromDate;
-//       } else if (range.to) {
-//         const toDate = parseDate(range.to);
-//         return patientDate <= toDate;
-//       }
-//       return true;
-//     });
-
-//     return matchesSearch && matchesFilter && matchesColumnFilters && matchesDateFilters;
+//     return matchesSearch && matchesFilter && matchesColumnFilters;
 //   });
 
 //   // Status badge component
@@ -491,28 +394,22 @@
 //   return (
 //     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100">
 //       {/* Mobile Menu Button */}
-//     <button
-//       className="lg:hidden fixed bottom-20 right-6 z-50 p-3 bg-white-600 hover:bg-green-700 text-blue rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-//       onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-//       aria-label="Toggle menu"
-//     >
-//       {isSidebarOpen ? (
-//         <X className="w-5 h-5" />
-//       ) : (
-//         <Menu className="w-5 h-5" />
+//       <button
+//         className="lg:hidden fixed bottom-20 right-6 z-50 p-3 bg-white-600 hover:bg-green-700 text-blue rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+//         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+//         aria-label="Toggle menu"
+//       >
+//         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+//       </button>
+      
+//       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+//       {isSidebarOpen && (
+//         <div
+//           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
+//           onClick={() => setIsSidebarOpen(false)}
+//         />
 //       )}
-//     </button>
-    
-//     {/* Sidebar Component - Stays on left */}
-//     <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-    
-//     {/* Overlay for mobile sidebar - Kept the same */}
-//     {isSidebarOpen && (
-//       <div
-//         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
-//         onClick={() => setIsSidebarOpen(false)}
-//       />
-//     )}
 
 //       <div className="flex-1 flex flex-col w-full overflow-hidden">
 //         <Header />
@@ -554,7 +451,7 @@
 //                             {stat.title}
 //                           </p>
 //                           <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-//                             {stat.value}
+//                             {loading ? '...' : stat.value}
 //                           </p>
 //                         </div>
 //                         <div
@@ -623,190 +520,174 @@
 //                     ))}
 //                   </div>
 
+//                   {/* Loading / Error states */}
+//                   {loading && (
+//                     <div className="text-center py-8 text-slate-500">Loading patients...</div>
+//                   )}
+//                   {error && (
+//                     <div className="text-center py-8 text-rose-500">{error}</div>
+//                   )}
+
 //                   {/* Patients Table with Column Filters */}
-//                   <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-//                     <div className="overflow-x-auto">
-//                       <div className="min-w-[1000px]">
-//                         <table className="w-full text-left border-collapse">
-//                           <thead>
-//                             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-300 dark:border-slate-700">
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
-//                                 <div className="flex items-center">
-//                                   Patient
-//                                   <ColumnFilter
-//                                     column="name"
-//                                     placeholder="Filter by name..."
-//                                     onFilter={(col, val) => {
-//                                       setColumnFilters(prev => {
-//                                         const filtered = prev.filter(f => f.column !== col);
-//                                         return val ? [...filtered, { column: col, value: val }] : filtered;
-//                                       });
-//                                     }}
-//                                     currentValue={columnFilters.find(f => f.column === "name")?.value}
-//                                   />
-//                                 </div>
-//                               </th>
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
-//                                 <div className="flex items-center">
-//                                   Condition
-//                                   <ColumnFilter
-//                                     column="condition"
-//                                     options={Array.from(new Set(patientsData.map(p => p.condition)))}
-//                                     onFilter={(col, val) => {
-//                                       setColumnFilters(prev => {
-//                                         const filtered = prev.filter(f => f.column !== col);
-//                                         return val ? [...filtered, { column: col, value: val }] : filtered;
-//                                       });
-//                                     }}
-//                                     currentValue={columnFilters.find(f => f.column === "condition")?.value}
-//                                   />
-//                                 </div>
-//                               </th>
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
-//                                 <div className="flex items-center">
-//                                   Department
-//                                   <ColumnFilter
-//                                     column="department"
-//                                     options={Array.from(new Set(patientsData.map(p => p.department)))}
-//                                     onFilter={(col, val) => {
-//                                       setColumnFilters(prev => {
-//                                         const filtered = prev.filter(f => f.column !== col);
-//                                         return val ? [...filtered, { column: col, value: val }] : filtered;
-//                                       });
-//                                     }}
-//                                     currentValue={columnFilters.find(f => f.column === "department")?.value}
-//                                   />
-//                                 </div>
-//                               </th>
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
-//                                 <div className="flex items-center">
-//                                   Last Visit
-//                                   <DateRangeFilter
-//                                     column="lastVisit"
-//                                     onFilter={(col, from, to) => {
-//                                       setDateFilters(prev => ({
-//                                         ...prev,
-//                                         [col]: { from, to }
-//                                       }));
-//                                     }}
-//                                     currentRange={dateFilters.lastVisit}
-//                                   />
-//                                 </div>
-//                               </th>
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
-//                                 <div className="flex items-center">
-//                                   Next Appointment
-//                                   <DateRangeFilter
-//                                     column="nextAppointment"
-//                                     onFilter={(col, from, to) => {
-//                                       setDateFilters(prev => ({
-//                                         ...prev,
-//                                         [col]: { from, to }
-//                                       }));
-//                                     }}
-//                                     currentRange={dateFilters.nextAppointment}
-//                                   />
-//                                 </div>
-//                               </th>
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
-//                                 <div className="flex items-center">
-//                                   Status
-//                                   <ColumnFilter
-//                                     column="status"
-//                                     options={["active", "inactive", "critical"]}
-//                                     onFilter={(col, val) => {
-//                                       setColumnFilters(prev => {
-//                                         const filtered = prev.filter(f => f.column !== col);
-//                                         return val ? [...filtered, { column: col, value: val }] : filtered;
-//                                       });
-//                                     }}
-//                                     currentValue={columnFilters.find(f => f.column === "status")?.value}
-//                                   />
-//                                 </div>
-//                               </th>
-//                               <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider text-right whitespace-nowrap">
-//                                 Actions
-//                               </th>
-//                             </tr>
-//                           </thead>
-//                           <tbody>
-//                             {filteredPatients.map((patient) => (
-//                                <tr
-//       key={patient.id}
-//       className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-//       onClick={() => router.push(`/admin/patientmanagement/${patient.id}`)}
-//     >
-//                                 <td className="px-4 py-3 whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
-//                                   <div className="flex items-center gap-3">
-//                                     <div
-//                                       className="h-10 w-10 rounded-full bg-slate-200 bg-cover bg-center ring-2 ring-slate-100 dark:ring-slate-800 flex-shrink-0"
-//                                       style={{ backgroundImage: `url(${patient.avatarUrl})` }}
-//                                     ></div>
-//                                     <div className="flex flex-col">
-//                                       <span className="text-slate-900 dark:text-white font-semibold text-base">
-//                                         {patient.name}
-//                                       </span>
-//                                       <span className="text-slate-500 text-sm">
-//                                         {patient.age}y • {patient.gender}
-//                                       </span>
-//                                     </div>
+//                   {!loading && !error && (
+//                     <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+//                       <div className="overflow-x-auto">
+//                         <div className="min-w-[1000px]">
+//                           <table className="w-full text-left border-collapse">
+//                             <thead>
+//                               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-300 dark:border-slate-700">
+//                                 <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
+//                                   <div className="flex items-center">
+//                                     Patient
+//                                     <ColumnFilter
+//                                       column="name"
+//                                       placeholder="Filter by name..."
+//                                       onFilter={(col, val) => {
+//                                         setColumnFilters(prev => {
+//                                           const filtered = prev.filter(f => f.column !== col);
+//                                           return val ? [...filtered, { column: col, value: val }] : filtered;
+//                                         });
+//                                       }}
+//                                       currentValue={columnFilters.find(f => f.column === "name")?.value}
+//                                     />
 //                                   </div>
-//                                 </td>
-//                                 <td className="px-4 py-3 whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
-//                                   <span
-//                                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${patient.conditionColor}`}
-//                                   >
-//                                     {patient.condition}
-//                                   </span>
-//                                 </td>
-//                                 <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
-//                                   {patient.department}
-//                                 </td>
-//                                 <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
-//                                   {patient.lastVisit}
-//                                 </td>
-//                                 <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
-//                                   {patient.nextAppointment}
-//                                 </td>
-//                                 <td className="px-4 py-3 whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
-//                                   <StatusBadge status={patient.status} />
-//                                 </td>
-//                                 <td className="px-4 py-3 text-right whitespace-nowrap">
-//                                   <div className="flex items-center justify-end gap-2">
-//                                     <button className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-//                                       <Edit className="w-4 h-4" />
-//                                     </button>
-//                                     <button className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-//                                       <Trash2 className="w-4 h-4" />
-//                                     </button>
+//                                 </th>
+                            
+                              
+//                                 <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
+//                                   <div className="flex items-center">
+//                                     Last Visit
+//                                     <DateRangeFilter
+//                                       column="lastVisit"
+//                                       onFilter={(col, from, to) => {
+//                                         setDateFilters(prev => ({
+//                                           ...prev,
+//                                           [col]: { from, to }
+//                                         }));
+//                                       }}
+//                                       currentRange={dateFilters.lastVisit}
+//                                     />
 //                                   </div>
-//                                 </td>
+//                                 </th>
+//                                 <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
+//                                   <div className="flex items-center">
+//                                     Next Appointment
+//                                     <DateRangeFilter
+//                                       column="nextAppointment"
+//                                       onFilter={(col, from, to) => {
+//                                         setDateFilters(prev => ({
+//                                           ...prev,
+//                                           [col]: { from, to }
+//                                         }));
+//                                       }}
+//                                       currentRange={dateFilters.nextAppointment}
+//                                     />
+//                                   </div>
+//                                 </th>
+//                                 <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
+//                                   <div className="flex items-center">
+//                                     Status
+//                                     <ColumnFilter
+//                                       column="status"
+//                                       options={["active", "inactive", "critical"]}
+//                                       onFilter={(col, val) => {
+//                                         setColumnFilters(prev => {
+//                                           const filtered = prev.filter(f => f.column !== col);
+//                                           return val ? [...filtered, { column: col, value: val }] : filtered;
+//                                         });
+//                                       }}
+//                                       currentValue={columnFilters.find(f => f.column === "status")?.value}
+//                                     />
+//                                   </div>
+//                                 </th>
+//                                 <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider text-right whitespace-nowrap">
+//                                   Actions
+//                                 </th>
 //                               </tr>
-//                             ))}
-//                           </tbody>
-//                         </table>
+//                             </thead>
+//                             <tbody>
+//                               {filteredPatients.map((patient) => (
+//                                 <tr
+//                                   key={patient.id}
+//                                   className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+//                                   onClick={() => router.push(`/admin/patientmanagement/${patient.id}`)}
+//                                 >
+//                                   <td className="px-4 py-3 whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
+//                                     <div className="flex items-center gap-3">
+//                                       <div
+//                                         className="h-10 w-10 rounded-full bg-slate-200 bg-cover bg-center ring-2 ring-slate-100 dark:ring-slate-800 flex-shrink-0"
+//                                         style={{ backgroundImage: `url(${patient.avatarUrl})` }}
+//                                       ></div>
+//                                       <div className="flex flex-col">
+//                                         <span className="text-slate-900 dark:text-white font-semibold text-base">
+//                                           {patient.name}
+//                                         </span>
+//                                         <span className="text-slate-500 text-sm">
+//                                           {patient.age}y • {patient.gender}
+//                                         </span>
+//                                       </div>
+//                                     </div>
+//                                   </td>
+
+//                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
+//                                     {patient.lastVisit}
+//                                   </td>
+//                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-sm whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
+//                                     {patient.nextAppointment}
+//                                   </td>
+//                                   <td className="px-4 py-3 whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
+//                                     <StatusBadge status={patient.status} />
+//                                   </td>
+//                                   <td className="px-4 py-3 text-right whitespace-nowrap">
+//                                     <div className="flex items-center justify-end gap-2">
+//                                       <button
+//                                         className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+//                                         onClick={(e) => {
+//                                           e.stopPropagation();
+//                                               console.log("Edit clicked for patient:", patient);
+//                                           router.push(`/admin/addnewpatient?patientId=${patient.id}`);
+//                                         }}
+//                                       >
+//                                         <Edit className="w-4 h-4" />
+//                                       </button>
+//                                       <button
+//                                         className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+//                                         onClick={(e) => {
+//                                           e.stopPropagation();
+//                                           handleDelete(patient.id);
+//                                         }}
+//                                       >
+//                                         <Trash2 className="w-4 h-4" />
+//                                       </button>
+//                                     </div>
+//                                   </td>
+//                                 </tr>
+//                               ))}
+//                             </tbody>
+//                           </table>
+//                         </div>
+//                       </div>
+//                       <div className="px-4 py-3 border-t border-slate-300 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+//                         <span className="text-sm text-slate-500 font-medium">
+//                           Showing 1 to {filteredPatients.length} of {patients.length} patients
+//                         </span>
+//                         <div className="flex gap-2">
+//                           <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+//                             Previous
+//                           </button>
+//                           <button className="px-3 py-1.5 rounded bg-[#137fec] text-white text-sm font-semibold">
+//                             1
+//                           </button>
+//                           <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+//                             2
+//                           </button>
+//                           <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+//                             Next
+//                           </button>
+//                         </div>
 //                       </div>
 //                     </div>
-//                     <div className="px-4 py-3 border-t border-slate-300 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
-//                       <span className="text-sm text-slate-500 font-medium">
-//                         Showing 1 to {filteredPatients.length} of {patientsData.length} patients
-//                       </span>
-//                       <div className="flex gap-2">
-//                         <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-//                           Previous
-//                         </button>
-//                         <button className="px-3 py-1.5 rounded bg-[#137fec] text-white text-sm font-semibold">
-//                           1
-//                         </button>
-//                         <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-//                           2
-//                         </button>
-//                         <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-//                           Next
-//                         </button>
-//                       </div>
-//                     </div>
-//                   </div>
+//                   )}
 //                 </div>
 //               </div>
 //             </div>
@@ -820,6 +701,7 @@
 // export default PatientManagementPage;
 
 
+// app/admin/patientmanagement/page.tsx (updated)
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -856,10 +738,18 @@ interface Patient {
   conditionColor: string;
   department: string;
   contact: string;
-  lastVisit: string;
-  nextAppointment: string;
+  lastVisit: string;          // will be updated from appointments
+  nextAppointment: string;     // will be updated from appointments
   status: "active" | "inactive" | "critical";
   statusColor: string;
+}
+
+// Type for appointment from the API
+interface Appointment {
+  id: number;
+  appointment_date: string;    // e.g., "2026-03-10T10:00:00Z"
+  status: string;               // e.g., "completed", "scheduled", "cancelled"
+  // ... other fields if needed
 }
 
 interface ColumnFilterProps {
@@ -1002,7 +892,7 @@ const PatientManagementPage: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All Patients");
-const [columnFilters, setColumnFilters] = useState<{ column: string; value: string }[]>([]);
+  const [columnFilters, setColumnFilters] = useState<{ column: string; value: string }[]>([]);
   const [dateFilters, setDateFilters] = useState<Record<string, { from: string; to: string }>>({});
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1025,24 +915,41 @@ const [columnFilters, setColumnFilters] = useState<{ column: string; value: stri
     { label: "Inactive", isActive: false },
   ];
 
-  // Fetch patients on mount
-useEffect(() => {
-  const fetchPatients = async () => {
+  // Helper to get status color
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'active': return 'text-green-700 dark:text-green-400';
+      case 'critical': return 'text-rose-700 dark:text-rose-400';
+      default: return 'text-slate-700 dark:text-slate-400';
+    }
+  };
+
+  // Helper to format date from ISO string to local date string
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(); // you can customize format as needed
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  // Fetch patients and then their appointments
+  useEffect(() => {
+  const fetchPatientsAndAppointments = async () => {
     try {
       setLoading(true);
+      // 1. Fetch patients list
       const response = await patientsApi.adminGetAllPatients();
-      console.log('API response:', response); // 👈 check console
+      console.log('API response:', response);
 
-      // Extract the patient array – try different possible structures
+      // Extract patient array
       let patientsArray: any[] = [];
       if (Array.isArray(response.data)) {
-        // Case 1: API returns array directly
         patientsArray = response.data;
       } else if (response.data && Array.isArray(response.data.data)) {
-        // Case 2: API returns { data: [...] }
         patientsArray = response.data.data;
       } else if (response.data?.success && Array.isArray(response.data.data)) {
-        // Case 3: API returns { success: true, data: [...] }
         patientsArray = response.data.data;
       } else {
         console.error('Unexpected API response format:', response.data);
@@ -1051,21 +958,13 @@ useEffect(() => {
         return;
       }
 
-      const mapped: Patient[] = patientsArray.map((item: any) => {
-        // Calculate age from DOB if available
+      // Map to Patient type with placeholder dates
+      const mappedPatients: Patient[] = patientsArray.map((item: any) => {
         const age = item.dob ? new Date().getFullYear() - new Date(item.dob).getFullYear() : 0;
-
-        // Derive a condition (you can adjust based on your actual data)
         const condition = item.allergies?.[0] || item.chronicConditions?.[0] || item.condition || 'No condition';
         const department = item.department || 'General';
-
-        // Status – default to 'active'
         const status = (item.status || 'active') as "active" | "inactive" | "critical";
-
-        // Avatar placeholder using name initials
         const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.full_name_en || 'Patient')}&background=137fec&color=fff&size=128`;
-
-        // Consistent badge color for condition (you can make dynamic later)
         const conditionColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
 
         return {
@@ -1082,17 +981,74 @@ useEffect(() => {
           conditionColor,
           department,
           contact: item.phone || '',
-          // If your API provides last visit / next appointment, use them; otherwise placeholders
-          lastVisit: item.last_visit ? new Date(item.last_visit).toLocaleDateString() : 'N/A',
-          nextAppointment: item.next_appointment ? new Date(item.next_appointment).toLocaleDateString() : 'N/A',
+          lastVisit: 'N/A',  // placeholder
+          nextAppointment: 'N/A', // placeholder
           status,
           statusColor: getStatusColor(status),
         };
       });
 
-      setPatients(mapped);
-      updateStats(mapped);
+      setPatients(mappedPatients);
+      updateStats(mappedPatients);
       setError(null);
+
+      // 2. For each patient, fetch appointments and update lastVisit & nextAppointment
+      const appointmentPromises = mappedPatients.map(async (patient) => {
+        try {
+          const res = await fetch(`/api/appointments/patient/${patient.id}`);
+          if (!res.ok) {
+            console.warn(`Failed to fetch appointments for patient ${patient.id}`);
+            return { patientId: patient.id, lastVisit: 'N/A', nextAppointment: 'N/A' };
+          }
+          const json = await res.json();
+          // Handle response format { success: true, data: [...] }
+          const appointments: any[] = json.data || (Array.isArray(json) ? json : []);
+
+          const now = new Date();
+
+          // Past appointments: date before now, exclude cancelled
+          const pastAppointments = appointments
+            .filter(apt => {
+              const aptDate = new Date(apt.date);
+              return aptDate < now && apt.status !== 'CANCELLED';
+            })
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // most recent first
+
+          // Future appointments: date after or equal now, exclude cancelled
+          const futureAppointments = appointments
+            .filter(apt => {
+              const aptDate = new Date(apt.date);
+              return aptDate >= now && apt.status !== 'CANCELLED';
+            })
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // soonest first
+
+          const lastVisit = pastAppointments.length > 0 ? formatDate(pastAppointments[0].date) : 'N/A';
+          const nextAppointment = futureAppointments.length > 0 ? formatDate(futureAppointments[0].date) : 'N/A';
+
+          return { patientId: patient.id, lastVisit, nextAppointment };
+        } catch (err) {
+          console.error(`Error fetching appointments for patient ${patient.id}:`, err);
+          return { patientId: patient.id, lastVisit: 'N/A', nextAppointment: 'N/A' };
+        }
+      });
+
+      const appointmentResults = await Promise.allSettled(appointmentPromises);
+      // Update patients with appointment data
+      const updatedPatients = mappedPatients.map(patient => {
+        const result = appointmentResults.find(
+          r => r.status === 'fulfilled' && r.value.patientId === patient.id
+        );
+        if (result?.status === 'fulfilled') {
+          return {
+            ...patient,
+            lastVisit: result.value.lastVisit,
+            nextAppointment: result.value.nextAppointment,
+          };
+        }
+        return patient; // keep original placeholders
+      });
+
+      setPatients(updatedPatients);
     } catch (err) {
       console.error('Error fetching patients:', err);
       setError('An error occurred while fetching patients');
@@ -1100,18 +1056,9 @@ useEffect(() => {
       setLoading(false);
     }
   };
-  fetchPatients();
+
+  fetchPatientsAndAppointments();
 }, []);
-
-
-  // Helper to get status color
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'active': return 'text-green-700 dark:text-green-400';
-      case 'critical': return 'text-rose-700 dark:text-rose-400';
-      default: return 'text-slate-700 dark:text-slate-400';
-    }
-  };
 
   // Update stats based on patients
   const updateStats = (patients: Patient[]) => {
@@ -1135,7 +1082,7 @@ useEffect(() => {
       const response = await patientsApi.adminDeletePatient(patientId);
       if (response.data?.success) {
         setPatients(prev => prev.filter(p => p.id !== patientId));
-        // Optionally show success toast/message
+        updateStats(patients.filter(p => p.id !== patientId));
       } else {
         alert('Failed to delete patient');
       }
@@ -1164,7 +1111,18 @@ useEffect(() => {
       return value?.toString().toLowerCase().includes(filter.value.toLowerCase());
     });
 
-    return matchesSearch && matchesFilter && matchesColumnFilters;
+    // Apply date range filters if present
+    const matchesDateFilters = Object.entries(dateFilters).every(([col, range]) => {
+      if (!range.from && !range.to) return true;
+      const patientDateStr = patient[col as keyof Patient] as string;
+      if (patientDateStr === 'N/A') return false;
+      const patientDate = new Date(patientDateStr).getTime();
+      if (range.from && new Date(range.from).getTime() > patientDate) return false;
+      if (range.to && new Date(range.to).getTime() < patientDate) return false;
+      return true;
+    });
+
+    return matchesSearch && matchesFilter && matchesColumnFilters && matchesDateFilters;
   });
 
   // Status badge component
@@ -1463,7 +1421,7 @@ useEffect(() => {
                                         className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                              console.log("Edit clicked for patient:", patient);
+                                          console.log("Edit clicked for patient:", patient);
                                           router.push(`/admin/addnewpatient?patientId=${patient.id}`);
                                         }}
                                       >

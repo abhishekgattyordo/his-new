@@ -807,6 +807,62 @@ import Header from "@/components/ui/Header";
 import { ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 
+interface Doctor {
+  id: number;
+  firstName: string;
+  name:string;
+  lastName: string;
+  image: string;
+  fees: number;  
+  email: string;
+  phone: string;
+  specialty: string;
+  languages: string[];
+  reviews: number;
+   availability: {
+    morning: string[];
+    afternoon: string[];
+    evening: string[];
+  };
+  department: string;
+  licenseNumber: string;
+  dateOfBirth: string;
+  education:number;
+  dateJoined: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  qualifications: string[];
+  experience: number;
+  bio: string;
+  status: string;
+  rating: number;
+  avatar: string;
+  createdAt: string;
+  updatedAt: string;
+  isOnline:boolean;
+  isVerified:boolean;
+}
+
+interface AppointmentData {
+  consultationType: "in-person" | "teleconsultation";
+  selectedDate: string;
+  selectedTime: string;
+  notes: string;
+  paymentMethod: string; // or more specific: "card" | "cash" | "insurance"
+}
+
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  hasSlots: boolean;
+  isPast?: boolean;
+  isSelected?: boolean;
+}
+
+
 import {
   CalendarDays,
   Check,
@@ -953,11 +1009,11 @@ function BookingPageContent() {
           specialty: doc.specialty || "General",
           rating: doc.rating || 4.5,
           reviews: 0,
-          experience: doc.experience ? `${doc.experience} years` : "N/A",
+          experience: doc.experience || 0,
           image: doc.avatar
             ? `http://localhost:000${doc.avatar}`
             : "/default-doctor.jpg",
-          fees: doc.fee ? `₹${doc.fee}` : "₹500",
+         fees: doc.fee ? Number(doc.fee) : 500,
           education: doc.qualifications || [],
           languages: [],
           availability: { morning: [], afternoon: [], evening: [] },
