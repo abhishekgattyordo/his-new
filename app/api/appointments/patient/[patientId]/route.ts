@@ -19,10 +19,9 @@ export async function GET(
         a.status,
         a.notes,
         d.id as doctor_id,
-        d.name as doctor_name,
+        CONCAT(d.first_name, ' ', d.last_name) as doctor_name,
         d.specialty as doctor_specialty,
-        d.image_url as doctor_image,
-        d.consultation_fee as fee
+        d.avatar as doctor_image
       FROM appointments a
       JOIN doctors d ON a.doctor_id = d.id
       WHERE a.patient_id = $1

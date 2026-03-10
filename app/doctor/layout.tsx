@@ -1,0 +1,268 @@
+// app/doctor/layout.tsx
+"use client";
+
+import React, { useState, createContext, useContext, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import DoctorSidebar from "@/components/doctor/DoctorSidebar";
+import { Menu, X, Calendar, LayoutDashboard, Users, CreditCard, User } from "lucide-react";
+import { appointmentsApi } from "@/lib/api/appointments";
+
+// Types
+export interface Appointment {
+  id: string;
+  time: string;
+  name: string;
+  age: number;
+  gender: string;
+  reason: string;
+  meta: string;
+  type: string;
+  status: string;
+  statusColor: string;
+  action: string;
+  icon: React.ReactNode;
+  highlight?: boolean;
+  notes?: string;
+}
+
+export interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  lastVisit: string;
+  condition: string;
+  status: string;
+  phone: string;
+  email: string;
+}
+
+export interface Invoice {
+  id: string;
+  patientName: string;
+  date: string;
+  amount: number;
+  status: string;
+  method?: string;
+}
+
+interface DoctorContextType {
+  appointments: Appointment[];
+  setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>;
+  patients: Patient[];
+  setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
+  invoices: Invoice[];
+  setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
+  loading: boolean;
+  error: string | null;
+}
+
+const DoctorContext = createContext<DoctorContextType | undefined>(undefined);
+
+export const useDoctor = () => {
+  const context = useContext(DoctorContext);
+  if (!context) throw new Error("useDoctor must be used within DoctorProvider");
+  return context;
+};
+
+export default function DoctorLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const doctorId = 4; // Replace with actual logged-in doctor's ID
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        console.log('Fetching appointments for doctor:', doctorId);
+        const appointmentsRes = await appointmentsApi.getDoctorAppointments(doctorId);
+        console.log('Raw API response:', appointmentsRes);
+
+        // Extract data from the nested structure
+        const apiData = appointmentsRes.data?.data || appointmentsRes.data;
+        console.log('Extracted data:', apiData);
+
+        if (Array.isArray(apiData) && apiData.length > 0) {
+          // Transform appointments
+          const fetchedAppointments = apiData.map((item: any) => {
+            // Calculate age safely
+            let age = 0;
+            if (item.patient_dob) {
+              try {
+                const birthDate = new Date(item.patient_dob);
+                age = new Date().getFullYear() - birthDate.getFullYear();
+              } catch (e) {
+                console.warn('Invalid DOB:', item.patient_dob);
+              }
+            }
+
+            // Format gender
+            let genderDisplay = 'Other';
+            if (item.patient_gender === 'male') genderDisplay = 'M';
+            else if (item.patient_gender === 'female') genderDisplay = 'F';
+
+            // Create meta string
+            const genderInitial = item.patient_gender?.charAt(0).toUpperCase() || '?';
+            const meta = `${genderInitial} • ${item.consultation_type || 'Consultation'}`;
+
+            return {
+              id: item.patient_id, // Using patient_id as unique key for appointments list
+              time: item.appointment_time || '--:--',
+              name: item.patient_name || '',
+              age,
+              gender: genderDisplay,
+              reason: item.consultation_type || 'Consultation',
+              meta,
+              type: item.consultation_type || 'In-Person',
+              status: item.status || 'BOOKED',
+              statusColor: getStatusColor(item.status),
+              action: 'View',
+              icon: <User className="w-3 h-3" />,
+              notes: item.notes || '',
+            };
+          });
+
+          console.log('Transformed appointments:', fetchedAppointments);
+          setAppointments(fetchedAppointments);
+
+          // Derive unique patients
+          const uniquePatients = new Map();
+          apiData.forEach((item: any) => {
+            if (!item.patient_id) return;
+            if (!uniquePatients.has(item.patient_id)) {
+              uniquePatients.set(item.patient_id, {
+                id: item.patient_id,
+                name: item.patient_name || '',
+                age: calculateAge(item.patient_dob),
+                gender: item.patient_gender || 'Unknown',
+                lastVisit: item.appointment_date ? new Date(item.appointment_date).toLocaleDateString() : 'N/A',
+                condition: 'N/A', // Not available from appointments
+                status: 'Active',
+                phone: item.patient_phone || '',
+                email: item.patient_email || '',
+              });
+            }
+          });
+          const patientsArray = Array.from(uniquePatients.values());
+          console.log('Derived patients:', patientsArray);
+          setPatients(patientsArray);
+        } else {
+          console.log('No appointments found for this doctor');
+          setAppointments([]);
+          setPatients([]);
+        }
+
+        // TODO: Fetch invoices if endpoint exists
+        setInvoices([]);
+      } catch (err) {
+        console.error('Error in fetchData:', err);
+        setError('Failed to load data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [doctorId]);
+
+  // Helper functions
+  const calculateAge = (dob: string) => {
+    if (!dob) return 0;
+    try {
+      const birthDate = new Date(dob);
+      return new Date().getFullYear() - birthDate.getFullYear();
+    } catch {
+      return 0;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'BOOKED':
+        return 'text-blue-600 bg-blue-100';
+      case 'COMPLETED':
+        return 'text-green-600 bg-green-50';
+      case 'CANCELLED':
+        return 'text-red-600 bg-red-50';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Navigation items
+  const navItems = [
+    { id: "schedule", label: "Schedule", icon: <Calendar className="w-5 h-5" />, badge: appointments.length.toString() },
+    { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: "patients", label: "Patients", icon: <Users className="w-5 h-5" />, badge: patients.length.toString() },
+    { id: "billing", label: "Billing", icon: <CreditCard className="w-5 h-5" />, badge: invoices.filter(i => i.status === "Pending").length.toString() },
+  ];
+
+  const activeSection = pathname.split('/')[2] || "schedule";
+
+  return (
+    <DoctorContext.Provider value={{ appointments, setAppointments, patients, setPatients, invoices, setInvoices, loading, error }}>
+      <div className="min-h-screen bg-[#f6f7f8] flex font-sans">
+        <style jsx global>{`
+          body {
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+          }
+        `}</style>
+
+        {/* Mobile Menu Button */}
+        <button
+          className="lg:hidden fixed bottom-20 right-6 z-50 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+          onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
+        {/* Sidebar */}
+        <DoctorSidebar
+          collapsed={sidebarCollapsed}
+          activeSection={activeSection}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          navItems={navItems}
+          doctorName="Dr. Sarah Bennett"
+          doctorSpecialty="Cardiology"
+          doctorInitials="SB"
+          isMobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
+
+        {/* Backdrop overlay for mobile */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent animate-spin rounded-full"></div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-full text-red-600">{error}</div>
+            ) : (
+              children
+            )}
+          </main>
+        </div>
+      </div>
+
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    </DoctorContext.Provider>
+  );
+}

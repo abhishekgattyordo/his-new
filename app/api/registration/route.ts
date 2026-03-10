@@ -427,6 +427,7 @@ async function handleStep3(data: Step3Input) {
 }
 
 // ==================== GET ENDPOINT ====================
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -434,12 +435,56 @@ export async function GET(req: NextRequest) {
     const listAll = searchParams.get('list') === 'true';
 
     if (listAll) {
-      const allRegistrations = await query(
-        `SELECT * FROM registration_details ORDER BY created_at DESC`
-      );
+      // Return all registrations with full details using jsonb_agg
+      const result = await query(`
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'patient_id', p.patient_id::text,
+            'full_name_en', p.full_name_en,
+            'full_name_hi', p.full_name_hi,
+            'dob', p.dob,
+            'gender', p.gender,
+            'address', p.address,
+            'city', p.city,
+            'state', p.state,
+            'country', p.country,
+            'pincode', p.pincode,
+            'phone', p.phone,
+            'email', p.email,
+            'blood_group', p.blood_group,
+            'registration_step', p.registration_step,
+            'created_at', p.created_at,
+            'updated_at', p.updated_at,
+            'insurance_provider', i.insurance_provider,
+            'policy_number', i.policy_number,
+            'valid_until', i.valid_until,
+            'group_id', i.group_id,
+            'registration_id', r.registration_id,
+            'registration_status', r.status,
+            'completed_at', r.completed_at,
+            'medical_history', COALESCE((
+              SELECT jsonb_agg(
+                jsonb_build_object(
+                  'allergy', mh.allergy,
+                  'chronic_condition', mh.chronic_condition,
+                  'medications', mh.medications,
+                  'recorded_at', mh.created_at
+                )
+              )
+              FROM medical_history mh
+              WHERE mh.patient_id = p.patient_id
+            ), '[]'::jsonb)
+          )
+          ORDER BY r.created_at DESC
+        ) as data
+        FROM patients p
+        LEFT JOIN insurance_details i ON p.patient_id = i.patient_id
+        LEFT JOIN registrations r ON p.patient_id = r.patient_id
+      `);
+
       return NextResponse.json({
         success: true,
-        data: allRegistrations.rows,
+        data: result.rows[0]?.data || [],
       });
     }
 

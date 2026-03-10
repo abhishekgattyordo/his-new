@@ -8,6 +8,14 @@ import {
   patientIdSchema 
 } from '@/lib/validations/registration';
 
+function generatePatientId(): string {
+  const timestamp = Date.now(); // 13 digits
+  const random = Math.floor(Math.random() * 10000); // 0-9999
+  const patientId = `${timestamp}${random.toString().padStart(4, '0')}`;
+  console.log('✅ Generated patient ID:', patientId);
+  return patientId;
+}
+
 function isErrorWithProperties(error: unknown): error is {
   name?: string;
   message?: string;
@@ -148,6 +156,7 @@ export async function GET(request: Request) {
 }
 
 // ==================== POST ====================
+
 export async function POST(request: Request) {
   const client = await pool.connect();
   try {
@@ -163,15 +172,20 @@ export async function POST(request: Request) {
 
     const data = validation.data;
 
+    // ✅ Generate a unique patient ID
+    const patientId = generatePatientId();
+
     await client.query('BEGIN');
 
+    // ✅ Include patient_id in the INSERT
     const patientResult = await client.query(
       `INSERT INTO patients (
-        full_name_en, full_name_hi, dob, gender, address, city, state, country, pincode,
+        patient_id, full_name_en, full_name_hi, dob, gender, address, city, state, country, pincode,
         phone, email, blood_group, registration_step, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
       RETURNING patient_id`,
       [
+        patientId,
         data.fullNameEn,
         data.fullNameHi || null,
         data.dob,
@@ -184,11 +198,12 @@ export async function POST(request: Request) {
         data.phone,
         data.email,
         data.blood_group || null,
-        3
+        3 // registration_step (completed)
       ]
     );
 
-    const patientId = patientResult.rows[0].patient_id;
+    // The returned patient_id should be the same as we generated
+    const insertedPatientId = patientResult.rows[0].patient_id;
 
     // Medical history (singular columns)
     const firstAllergy = data.allergies[0] || '';
@@ -199,7 +214,7 @@ export async function POST(request: Request) {
         `INSERT INTO medical_history (patient_id, allergy, chronic_condition, medications)
          VALUES ($1, $2, $3, $4)`,
         [
-          patientId,
+          insertedPatientId,
           firstAllergy,
           firstCondition,
           data.medications || null
@@ -213,7 +228,7 @@ export async function POST(request: Request) {
         `INSERT INTO insurance_details (patient_id, insurance_provider, policy_number, valid_until, group_id)
          VALUES ($1, $2, $3, $4, $5)`,
         [
-          patientId,
+          insertedPatientId,
           data.insuranceProvider || null,
           data.policyNumber || null,
           data.validUntil || null,
@@ -227,37 +242,38 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Patient created successfully',
-      data: { patientId }
+      data: { patientId: insertedPatientId }
     });
   } catch (error) {
-  await client.query('ROLLBACK');
-  console.error('========== ERROR DETAILS ==========');
+    await client.query('ROLLBACK');
+    console.error('========== ERROR DETAILS ==========');
 
-  if (isErrorWithProperties(error)) {
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    if (error.code) console.error('Error code:', error.code);
-    if (error.detail) console.error('Error detail:', error.detail);
-  } else {
-    console.error('Unexpected error type:', error);
+    if (isErrorWithProperties(error)) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      if (error.code) console.error('Error code:', error.code);
+      if (error.detail) console.error('Error detail:', error.detail);
+    } else {
+      console.error('Unexpected error type:', error);
+    }
+
+    console.error('===================================');
+
+    const errorMessage = isErrorWithProperties(error) ? error.message : 'Unknown error';
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: 'Failed to save patient',
+        error: errorMessage,
+        ...(isErrorWithProperties(error) && error.code ? { code: error.code } : {}),
+        ...(isErrorWithProperties(error) && error.detail ? { detail: error.detail } : {})
+      },
+      { status: 500 }
+    );
+  } finally {
+    client.release(); // ✅ release client
   }
-
-  console.error('===================================');
-
-  const errorMessage = isErrorWithProperties(error) ? error.message : 'Unknown error';
-  return NextResponse.json(
-    { 
-      success: false, 
-      message: 'Failed to save patient',
-      error: errorMessage,
-      // Optionally include code/detail if they exist
-      ...(isErrorWithProperties(error) && error.code ? { code: error.code } : {}),
-      ...(isErrorWithProperties(error) && error.detail ? { detail: error.detail } : {})
-    },
-    { status: 500 }
-  );
-}
 }
 
 // ==================== PUT ====================
