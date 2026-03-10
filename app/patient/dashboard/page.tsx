@@ -562,6 +562,7 @@
 //   );
 // }
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -570,6 +571,7 @@ import Link from "next/link";
 import Sidebar from "@/components/patient/Sidebar";
 import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import toast from "react-hot-toast";
 
 // Define types for appointments from API
 interface Appointment {
@@ -582,7 +584,7 @@ interface Appointment {
   doctor_id: string;
   doctor_name: string;
   doctor_specialty: string;
-  doctor_image: string;
+  doctor_image: string | null;
   fee: number;
 }
 
@@ -603,17 +605,20 @@ export default function HomePage() {
         const user = JSON.parse(localStorage.getItem("user") || "null");
         
         if (!user || !user.id) {
+          toast.error("Please login first");
           router.push("/login");
           return;
         }
         
-        setUserName(user.name || "Patient");
+        setUserName(user.full_name_en || user.name || "Patient");
         
         // Use patient_id if available, otherwise fallback to id
         const patientId = user.patient_id || String(user.id);
         await fetchAppointments(patientId);
       } catch (error) {
         console.error("Error in useEffect:", error);
+        toast.error("Failed to load user data");
+        setLoading(false);
       }
     };
     
@@ -624,22 +629,32 @@ export default function HomePage() {
     try {
       setLoading(true);
       
+      console.log(`Fetching appointments for patient: ${patientId}`);
+      
       const res = await fetch(`/api/appointments/patient/${patientId}`);
       
       if (!res.ok) {
-        console.error("API error:", res.status, res.statusText);
+        const errorData = await res.json().catch(() => ({}));
+        console.error("API error:", res.status, res.statusText, errorData);
+        toast.error(`Failed to load appointments: ${res.statusText}`);
+        setAppointments([]);
         return;
       }
       
       const data = await res.json();
+      console.log("Appointments data:", data);
       
       if (data.success) {
-        setAppointments(data.data);
+        setAppointments(data.data || []);
       } else {
         console.log("Failed to fetch appointments:", data.message);
+        toast.error(data.message || "Failed to load appointments");
+        setAppointments([]);
       }
     } catch (error) {
       console.error("Error fetching appointments:", error);
+      toast.error("Network error while fetching appointments");
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
@@ -659,7 +674,7 @@ export default function HomePage() {
 
   const past = appointments.filter(apt => {
     const aptDate = parseDate(apt.date);
-    return apt.status === "COMPLETED" || aptDate < today;
+    return apt.status === "COMPLETED" || (apt.status === "BOOKED" && aptDate < today);
   });
 
   const canceled = appointments.filter(apt => apt.status === "CANCELLED");
@@ -667,7 +682,7 @@ export default function HomePage() {
   // Further filter by consultation type
   const filterByType = (list: Appointment[]) => {
     if (filterType === "All Types") return list;
-    return list.filter(apt => apt.type === filterType.toLowerCase());
+    return list.filter(apt => apt.type?.toLowerCase() === filterType.toLowerCase());
   };
 
   const displayedAppointments = (() => {
@@ -680,15 +695,12 @@ export default function HomePage() {
   })();
 
   // Format date for display
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string, timeStr?: string) => {
     const date = new Date(dateStr);
     return {
-      day: date.getDate().toString(),
+      day: date.getDate().toString().padStart(2, '0'),
       month: date.toLocaleDateString('en-US', { month: 'short' }),
-      time: new Date(dateStr + 'T' + appointments.find(a => a.date === dateStr)?.time).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
+      time: timeStr || '',
       full: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     };
   };

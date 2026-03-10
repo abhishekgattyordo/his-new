@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useState ,useEffect} from 'react';
-import { useRouter } from 'next/navigation';
-import Header from '@/components/admin/Header';
-import Sidebar from '@/components/admin/Sidebar';
-import { Menu, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Header from "@/components/admin/Header";
+import Sidebar from "@/components/admin/Sidebar";
+import { Menu, X } from "lucide-react";
 import {
   ArrowBack,
   PersonAdd,
@@ -21,83 +21,101 @@ import {
   Work,
   School,
   AttachFile,
-  Close
-} from '@mui/icons-material';
-import { doctorsApi } from '@/lib/api/doctors';
+  Close,
+} from "@mui/icons-material";
+import { doctorsApi } from "@/lib/api/doctors";
 
 export default function AddNewDoctorPage() {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [specialtyOptions, setSpecialtyOptions] = useState<string[]>([]);
+  const [specialtyOptions, setSpecialtyOptions] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    specialty: '',
-    department: '',
-    licenseNumber: '',
-    dateOfBirth: '',
-    dateJoined: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: '',
-    qualifications: [''],
-    experience: '',
-    bio: '',
-    status: 'active',
-    avatar: null as File | null
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    specialty: "",
+    department: "",
+    licenseNumber: "",
+    dateOfBirth: "",
+    dateJoined: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
+    qualifications: [""],
+    experience: "",
+    bio: "",
+    status: "active",
+    avatar: null as File | null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-    const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-      const [loadingOptions, setLoadingOptions] = useState(true);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(true);
 
   useEffect(() => {
     const fetchOptions = async () => {
       try {
         setLoadingOptions(true);
+        console.log("Fetching specialties...");
         const response = await doctorsApi.getSpecialties();
-      if (response.data?.success && response.data.data) {
+        console.log("Raw API response:", response);
+        console.log("response.data:", response.data);
+
+        // ✅ Correct check: response.success and response.data array
+        if (response?.success && Array.isArray(response.data)) {
+          console.log("Specialties array from API:", response.data);
+
           // Extract unique specialty names
           const specialties = Array.from(
-            new Set(response.data.map((item: any) => item.name))
+            new Set(response.data.map((item: any) => item.name)),
           ).sort() as string[];
+          console.log("Processed specialties:", specialties);
           setSpecialtyOptions(specialties);
 
           // Extract unique department names
           const departments = Array.from(
-            new Set(response.data.map((item: any) => item.department).filter(Boolean))
+            new Set(
+              response.data.map((item: any) => item.department).filter(Boolean),
+            ),
           ).sort() as string[];
+          console.log("Processed departments:", departments);
           setDepartmentOptions(departments);
         } else {
-          console.error('Failed to fetch specialties:', response.data?.message || 'Unknown error');
-          // Fallback to empty arrays – user will see no options
+          console.error(
+            "Failed to fetch specialties:",
+            response?.message || "Unknown error",
+          );
         }
       } catch (error) {
-        console.error('Error fetching specialties:', error);
+        console.error("Error fetching specialties:", error);
       } finally {
         setLoadingOptions(false);
+        console.log("Loading finished. Specialty options:", specialtyOptions);
       }
     };
     fetchOptions();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear error for this field
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
@@ -105,8 +123,8 @@ export default function AddNewDoctorPage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, avatar: file }));
-      
+      setFormData((prev) => ({ ...prev, avatar: file }));
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -117,19 +135,19 @@ export default function AddNewDoctorPage() {
   };
 
   const removeAvatar = () => {
-    setFormData(prev => ({ ...prev, avatar: null }));
+    setFormData((prev) => ({ ...prev, avatar: null }));
     setAvatarPreview(null);
   };
 
   const addQualification = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      qualifications: [...prev.qualifications, '']
+      qualifications: [...prev.qualifications, ""],
     }));
   };
 
   const updateQualification = (index: number, value: string) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const newQualifications = [...prev.qualifications];
       newQualifications[index] = value;
       return { ...prev, qualifications: newQualifications };
@@ -137,27 +155,29 @@ export default function AddNewDoctorPage() {
   };
 
   const removeQualification = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      qualifications: prev.qualifications.filter((_, i) => i !== index)
+      qualifications: prev.qualifications.filter((_, i) => i !== index),
     }));
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.firstName.trim())
+      newErrors.firstName = "First name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    if (!formData.specialty) newErrors.specialty = 'Specialty is required';
-    if (!formData.department) newErrors.department = 'Department is required';
-    if (!formData.licenseNumber.trim()) newErrors.licenseNumber = 'License number is required';
-    if (!formData.dateJoined) newErrors.dateJoined = 'Date joined is required';
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!formData.specialty) newErrors.specialty = "Specialty is required";
+    if (!formData.department) newErrors.department = "Department is required";
+    if (!formData.licenseNumber.trim())
+      newErrors.licenseNumber = "License number is required";
+    if (!formData.dateJoined) newErrors.dateJoined = "Date joined is required";
 
     return newErrors;
   };
@@ -165,7 +185,7 @@ export default function AddNewDoctorPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateForm();
-    
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -176,40 +196,41 @@ export default function AddNewDoctorPage() {
 
     try {
       const apiFormData = new FormData();
-      
-      // Append all fields
-      apiFormData.append('firstName', formData.firstName);
-      apiFormData.append('lastName', formData.lastName);
-      apiFormData.append('email', formData.email);
-      apiFormData.append('phone', formData.phone);
-      apiFormData.append('specialty', formData.specialty);
-      apiFormData.append('department', formData.department);
-      apiFormData.append('licenseNumber', formData.licenseNumber);
-      if (formData.dateOfBirth) apiFormData.append('dateOfBirth', formData.dateOfBirth);
-      apiFormData.append('dateJoined', formData.dateJoined);
-      if (formData.address) apiFormData.append('address', formData.address);
-      if (formData.city) apiFormData.append('city', formData.city);
-      if (formData.state) apiFormData.append('state', formData.state);
-      if (formData.zipCode) apiFormData.append('zipCode', formData.zipCode);
-      if (formData.country) apiFormData.append('country', formData.country);
-      
-      // Qualifications array (filter out empty strings)
-      formData.qualifications.forEach(q => {
-        if (q.trim()) apiFormData.append('qualifications[]', q);
-      });
-      
-     if (formData.experience) {
-  const exp = parseInt(formData.experience, 10);
-  if (!isNaN(exp)) {
-    apiFormData.append('experience', exp.toString()); // still a string, but numeric string
-  }
-}
-      if (formData.bio) apiFormData.append('bio', formData.bio);
-      apiFormData.append('status', formData.status);
-      if (formData.avatar) apiFormData.append('avatar', formData.avatar);
 
-      const response = await fetch('/api/doctors', {
-        method: 'POST',
+      // Append all fields
+      apiFormData.append("firstName", formData.firstName);
+      apiFormData.append("lastName", formData.lastName);
+      apiFormData.append("email", formData.email);
+      apiFormData.append("phone", formData.phone);
+      apiFormData.append("specialty", formData.specialty);
+      apiFormData.append("department", formData.department);
+      apiFormData.append("licenseNumber", formData.licenseNumber);
+      if (formData.dateOfBirth)
+        apiFormData.append("dateOfBirth", formData.dateOfBirth);
+      apiFormData.append("dateJoined", formData.dateJoined);
+      if (formData.address) apiFormData.append("address", formData.address);
+      if (formData.city) apiFormData.append("city", formData.city);
+      if (formData.state) apiFormData.append("state", formData.state);
+      if (formData.zipCode) apiFormData.append("zipCode", formData.zipCode);
+      if (formData.country) apiFormData.append("country", formData.country);
+
+      // Qualifications array (filter out empty strings)
+      formData.qualifications.forEach((q) => {
+        if (q.trim()) apiFormData.append("qualifications[]", q);
+      });
+
+      if (formData.experience) {
+        const exp = parseInt(formData.experience, 10);
+        if (!isNaN(exp)) {
+          apiFormData.append("experience", exp.toString()); // still a string, but numeric string
+        }
+      }
+      if (formData.bio) apiFormData.append("bio", formData.bio);
+      apiFormData.append("status", formData.status);
+      if (formData.avatar) apiFormData.append("avatar", formData.avatar);
+
+      const response = await fetch("/api/doctors", {
+        method: "POST",
         body: apiFormData,
       });
 
@@ -220,18 +241,18 @@ export default function AddNewDoctorPage() {
         if (result.errors) {
           setErrors(result.errors);
         } else {
-          alert(result.message || 'Failed to add doctor');
+          alert(result.message || "Failed to add doctor");
         }
         setIsSubmitting(false);
         return;
       }
 
       // Success
-      alert('Doctor added successfully!');
-      router.push('/admin/doctorstaffmanagement');
+      alert("Doctor added successfully!");
+      router.push("/admin/doctorstaffmanagement");
     } catch (error) {
-      console.error('Error submitting form:', error);
-      alert('An error occurred. Please try again.');
+      console.error("Error submitting form:", error);
+      alert("An error occurred. Please try again.");
       setIsSubmitting(false);
     }
   };
@@ -244,35 +265,33 @@ export default function AddNewDoctorPage() {
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100">
       {/* Mobile Sidebar Toggle */}
       <button
-  className="lg:hidden fixed bottom-20 right-6 z-50 p-3 bg-white-600 hover:bg-green-700 text-blue rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-  aria-label="Toggle menu"
->
-  {isSidebarOpen ? (
-    <X className="w-5 h-5" />
-  ) : (
-    <Menu className="w-5 h-5" />
-  )}
-</button>
+        className="lg:hidden fixed bottom-20 right-6 z-50 p-3 bg-white-600 hover:bg-green-700 text-blue rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label="Toggle menu"
+      >
+        {isSidebarOpen ? (
+          <X className="w-5 h-5" />
+        ) : (
+          <Menu className="w-5 h-5" />
+        )}
+      </button>
 
-{/* Sidebar Component - Stays on left */}
-<Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      {/* Sidebar Component - Stays on left */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-{/* Overlay for mobile sidebar - Kept the same */}
-{isSidebarOpen && (
-  <div
-    className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
-    onClick={() => setIsSidebarOpen(false)}
-  />
-)}
-      
+      {/* Overlay for mobile sidebar - Kept the same */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-y-auto">
         <Header />
-        
-        <div className="p-4 lg:p-6">
-         
 
+        <div className="p-4 lg:p-6">
           {/* Main Form */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             {/* Form Header */}
@@ -283,10 +302,10 @@ export default function AddNewDoctorPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                     Add New Doctor
+                    Add New Doctor
                   </h2>
                   <p className="text-slate-500 dark:text-slate-400 text-sm">
-                     Add new medical practitioner to the system
+                    Add new medical practitioner to the system
                   </p>
                 </div>
               </div>
@@ -303,7 +322,7 @@ export default function AddNewDoctorPage() {
                         <Badge className="text-blue-600 dark:text-blue-400" />
                         Personal Information
                       </h3>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* First Name */}
                         <div className="space-y-2">
@@ -316,9 +335,9 @@ export default function AddNewDoctorPage() {
                             value={formData.firstName}
                             onChange={handleChange}
                             className={`w-full px-4 py-2.5 rounded-lg border ${
-                              errors.firstName 
-                                ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                              errors.firstName
+                                ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                             } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                             placeholder="Enter first name"
                           />
@@ -341,9 +360,9 @@ export default function AddNewDoctorPage() {
                             value={formData.lastName}
                             onChange={handleChange}
                             className={`w-full px-4 py-2.5 rounded-lg border ${
-                              errors.lastName 
-                                ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                              errors.lastName
+                                ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                             } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                             placeholder="Enter last name"
                           />
@@ -368,9 +387,9 @@ export default function AddNewDoctorPage() {
                               value={formData.email}
                               onChange={handleChange}
                               className={`w-full pl-10 pr-4 py-2.5 rounded-lg border ${
-                                errors.email 
-                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                  : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                                errors.email
+                                  ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                  : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                               } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                               placeholder="doctor@hospital.com"
                             />
@@ -396,9 +415,9 @@ export default function AddNewDoctorPage() {
                               value={formData.phone}
                               onChange={handleChange}
                               className={`w-full pl-10 pr-4 py-2.5 rounded-lg border ${
-                                errors.phone 
-                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                  : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                                errors.phone
+                                  ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                  : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                               } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                               placeholder="+1 (555) 123-4567"
                             />
@@ -441,10 +460,10 @@ export default function AddNewDoctorPage() {
                               value={formData.dateJoined}
                               onChange={handleChange}
                               className={`w-full pl-10 pr-4 py-2.5 rounded-lg border ${
-                                errors.dateJoined 
-                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                  : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
-                            } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
+                                errors.dateJoined
+                                  ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                  : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
+                              } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                             />
                           </div>
                           {errors.dateJoined && (
@@ -463,8 +482,9 @@ export default function AddNewDoctorPage() {
                         <LocalHospital className="text-blue-600 dark:text-blue-400" />
                         Professional Information
                       </h3>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Specialty */}
                         {/* Specialty */}
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -475,17 +495,23 @@ export default function AddNewDoctorPage() {
                             value={formData.specialty}
                             onChange={handleChange}
                             className={`w-full px-4 py-2.5 rounded-lg border ${
-                              errors.specialty 
-                                ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                              errors.specialty
+                                ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                             } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                           >
                             <option value="">Select specialty</option>
-                            {specialtyOptions.map(specialty => (
-                              <option key={specialty} value={specialty}>
-                                {specialty}
+                            {loadingOptions ? (
+                              <option value="" disabled>
+                                Loading specialties...
                               </option>
-                            ))}
+                            ) : (
+                              specialtyOptions.map((specialty) => (
+                                <option key={specialty} value={specialty}>
+                                  {specialty}
+                                </option>
+                              ))
+                            )}
                           </select>
                           {errors.specialty && (
                             <p className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1">
@@ -505,17 +531,23 @@ export default function AddNewDoctorPage() {
                             value={formData.department}
                             onChange={handleChange}
                             className={`w-full px-4 py-2.5 rounded-lg border ${
-                              errors.department 
-                                ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                              errors.department
+                                ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                             } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                           >
                             <option value="">Select department</option>
-                            {departmentOptions.map(department => (
-                              <option key={department} value={department}>
-                                {department}
+                            {loadingOptions ? (
+                              <option value="" disabled>
+                                Loading departments...
                               </option>
-                            ))}
+                            ) : (
+                              departmentOptions.map((department) => (
+                                <option key={department} value={department}>
+                                  {department}
+                                </option>
+                              ))
+                            )}
                           </select>
                           {errors.department && (
                             <p className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1">
@@ -536,9 +568,9 @@ export default function AddNewDoctorPage() {
                             value={formData.licenseNumber}
                             onChange={handleChange}
                             className={`w-full px-4 py-2.5 rounded-lg border ${
-                              errors.licenseNumber 
-                                ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500' 
-                                : 'border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20'
+                              errors.licenseNumber
+                                ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                                : "border-slate-300 dark:border-slate-700 focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20"
                             } bg-white dark:bg-slate-800 text-slate-900 dark:text-white transition-colors`}
                             placeholder="MED123456"
                           />
@@ -583,13 +615,15 @@ export default function AddNewDoctorPage() {
                             Add Qualification
                           </button>
                         </div>
-                        
+
                         {formData.qualifications.map((qualification, index) => (
                           <div key={index} className="flex items-center gap-2">
                             <input
                               type="text"
                               value={qualification}
-                              onChange={(e) => updateQualification(index, e.target.value)}
+                              onChange={(e) =>
+                                updateQualification(index, e.target.value)
+                              }
                               className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-[#137fec] focus:ring-2 focus:ring-blue-500/20 transition-colors"
                               placeholder="e.g., MD, PhD, Board Certification"
                             />
@@ -630,16 +664,23 @@ export default function AddNewDoctorPage() {
                       <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                         Profile Photo
                       </h3>
-                      
-                      <div className={`border-2 ${
-                        avatarPreview ? 'border-slate-200 dark:border-slate-700' : 'border-dashed border-slate-300 dark:border-slate-700'
-                      } rounded-2xl p-6 transition-colors`}>
+
+                      <div
+                        className={`border-2 ${
+                          avatarPreview
+                            ? "border-slate-200 dark:border-slate-700"
+                            : "border-dashed border-slate-300 dark:border-slate-700"
+                        } rounded-2xl p-6 transition-colors`}
+                      >
                         {avatarPreview ? (
                           <div className="space-y-4">
                             <div className="relative">
-                              <div className="w-32 h-32 mx-auto rounded-full bg-cover bg-center ring-4 ring-white dark:ring-slate-900 shadow-lg"
-                                   style={{ backgroundImage: `url(${avatarPreview})` }}>
-                              </div>
+                              <div
+                                className="w-32 h-32 mx-auto rounded-full bg-cover bg-center ring-4 ring-white dark:ring-slate-900 shadow-lg"
+                                style={{
+                                  backgroundImage: `url(${avatarPreview})`,
+                                }}
+                              ></div>
                               <button
                                 type="button"
                                 onClick={removeAvatar}
@@ -665,7 +706,7 @@ export default function AddNewDoctorPage() {
                             </p>
                           </div>
                         )}
-                        
+
                         <label className="block">
                           <input
                             type="file"
@@ -674,7 +715,7 @@ export default function AddNewDoctorPage() {
                             className="hidden"
                           />
                           <div className="cursor-pointer py-3 px-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-sm font-medium text-center">
-                            {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                            {avatarPreview ? "Change Photo" : "Upload Photo"}
                           </div>
                         </label>
                       </div>
@@ -686,7 +727,7 @@ export default function AddNewDoctorPage() {
                         <Home className="text-blue-600 dark:text-blue-400" />
                         Address Information
                       </h3>
-                      
+
                       <div className="space-y-3">
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -769,14 +810,14 @@ export default function AddNewDoctorPage() {
                       <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                         Status
                       </h3>
-                      
+
                       <div className="space-y-3">
                         <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer transition-colors">
                           <input
                             type="radio"
                             name="status"
                             value="active"
-                            checked={formData.status === 'active'}
+                            checked={formData.status === "active"}
                             onChange={handleChange}
                             className="text-blue-600 focus:ring-blue-500"
                           />
@@ -795,7 +836,7 @@ export default function AddNewDoctorPage() {
                             type="radio"
                             name="status"
                             value="on-leave"
-                            checked={formData.status === 'on-leave'}
+                            checked={formData.status === "on-leave"}
                             onChange={handleChange}
                             className="text-amber-600 focus:ring-amber-500"
                           />
@@ -823,7 +864,7 @@ export default function AddNewDoctorPage() {
                       All information is securely stored and encrypted
                     </p>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -832,7 +873,7 @@ export default function AddNewDoctorPage() {
                     >
                       Cancel
                     </button>
-                    
+
                     <button
                       type="submit"
                       disabled={isSubmitting}
