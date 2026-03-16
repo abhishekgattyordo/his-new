@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Plus } from "lucide-react";
 import { useDoctor } from "../layout";
@@ -9,6 +9,10 @@ export default function PatientsPage() {
   const router = useRouter();
   const { patients } = useDoctor();
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+  console.log("Patients response:", patients);
+}, [patients]);
 
   const filteredPatients = patients.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

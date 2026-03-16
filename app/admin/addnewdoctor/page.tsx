@@ -66,7 +66,7 @@ export default function AddNewDoctorPage() {
         console.log("response.data:", response.data);
 
         // ✅ Correct check: response.success and response.data array
-        if (response?.success && Array.isArray(response.data)) {
+       if (response?.data?.success && Array.isArray(response.data.data)) {
           console.log("Specialties array from API:", response.data);
 
           // Extract unique specialty names
@@ -85,10 +85,10 @@ export default function AddNewDoctorPage() {
           console.log("Processed departments:", departments);
           setDepartmentOptions(departments);
         } else {
-          console.error(
-            "Failed to fetch specialties:",
-            response?.message || "Unknown error",
-          );
+         console.error(
+  "Failed to fetch specialties:",
+  response?.data?.message || "Unknown error",
+);
         }
       } catch (error) {
         console.error("Error fetching specialties:", error);

@@ -78,7 +78,7 @@ export default function NewPatientPage() {
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
-        <h2 className="text-2xl font-bold text-gray-800">Add New Patient</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Add New Patienttt</h2>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">

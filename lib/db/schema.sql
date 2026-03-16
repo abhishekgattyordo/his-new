@@ -629,8 +629,7 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
--- VIEW
--- =====================================================
+-- VIEWappointments
 
 CREATE OR REPLACE VIEW registration_details AS
 SELECT 
@@ -651,3 +650,32 @@ FROM patients p
 LEFT JOIN insurance_details i ON p.patient_id = i.patient_id
 LEFT JOIN face_verification fv ON p.patient_id = fv.patient_id
 LEFT JOIN registrations r ON p.patient_id = r.patient_id;
+
+
+
+-- --------------------doctor appoitment----------------------
+CREATE TABLE visit_details (
+  id SERIAL PRIMARY KEY,
+  appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+  diagnosis TEXT,
+  icd10_code VARCHAR(20),
+  clinical_notes TEXT,
+  follow_up_date DATE,
+  patient_instructions TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+
+CREATE TABLE vitals (
+  id SERIAL PRIMARY KEY,
+  appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+  bp VARCHAR(20),
+  hr INTEGER,
+  temp DECIMAL(4,2),
+  weight DECIMAL(5,2),
+  rr INTEGER,
+  spo2 INTEGER,
+  recorded_by VARCHAR(100),
+  recorded_at TIMESTAMP DEFAULT NOW()
+);

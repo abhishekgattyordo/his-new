@@ -1,10 +1,7 @@
-
-
-
 "use client";
 
 import { useState, createContext, useContext, useEffect } from "react";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import React from "react";
 
@@ -15,9 +12,9 @@ import AddVitalsModal from "@/components/doctor/AddVitalsModal";
 
 // Import API clients
 import { patientsApi } from "@/lib/api/registration";
-import { appointmentsApi } from "@/lib/api/appointments";
+import { currentVisitApi } from "@/lib/api/ehr"; // ✅ new import
 
-// Types
+// Types (unchanged)
 interface Medication {
   id: number;
   name: string;
@@ -40,7 +37,6 @@ interface Vital {
   recordedBy: string;
 }
 
-// Patient type used in context
 interface Patient {
   id: string;
   name: string;
@@ -55,6 +51,15 @@ interface Patient {
   bloodGroup: string;
   avatar: string;
   avatarColor: string;
+}
+
+interface Visit {
+  id: string;
+  date: string;
+  type: string;
+  doctor: string;
+  notes: string;
+  diagnosis: string;
 }
 
 interface EHRContextType {
@@ -88,7 +93,7 @@ export const useEHR = () => {
   return context;
 };
 
-// Helper functions
+// Helper functions (unchanged)
 const calculateAge = (dob: string): number => {
   if (!dob) return 0;
   const birth = new Date(dob);
@@ -118,17 +123,14 @@ const formatGender = (gender: string): string => {
 export default function EHRLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
+  const router = useRouter();
   const patientId = params.patientId as string;
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [vitals, setVitals] = useState<Vital[]>([]);
-  const [visitHistory, setVisitHistory] = useState<any[]>([]);
-  const [appointmentsList, setAppointmentsList] = useState<any[]>([]);
-
-  useEffect(() => {
-  console.log("Appointments List:", appointmentsList);
-}, [appointmentsList]);
+  const [visitHistory, setVisitHistory] = useState<Visit[]>([]);
+  const [appointmentsList, setAppointmentsList] = useState<any[]>([]); // might keep for today's visit
 
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showAddMedicationModal, setShowAddMedicationModal] = useState(false);
@@ -139,7 +141,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch patient details and appointments
+  // Fetch patient details and completed visits
   useEffect(() => {
     const fetchData = async () => {
       if (!patientId) return;
@@ -158,26 +160,22 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
 
         const patientData = patientJson.data;
 
-        // Fetch appointments
-        let appointments = [];
-       try {
-  const aptRes = await appointmentsApi.getPatientAppointments(patientId);
+        // ✅ Fetch completed visits (only those with visit_details)
+        let completedVisits = [];
+        try {
+          const visitsRes = await currentVisitApi.getCompletedVisits(patientId);
+         
+         completedVisits = visitsRes.data || [];
+        } catch (visitErr) {
+          console.error("Error fetching completed visits:", visitErr);
+          completedVisits = [];
+        }
 
-  console.log("Appointments API response:", aptRes.data);
+        // Store raw appointments for today's visit detection (optional)
+        // We could also derive from completedVisits if needed
+        setAppointmentsList(completedVisits);
 
- appointments = aptRes.data || [];
-
-  console.log("Appointments extracted:", appointments);
-
-} catch (aptErr) {
-  console.error("Appointments API error:", aptErr);
-  appointments = [];
-}
-
-        // Store raw appointments
-        setAppointmentsList(appointments);
-
-        // Transform patient data
+        // Transform patient data (same as before)
         const transformedPatient: Patient = {
           id: patientData.patient_id,
           name: patientData.full_name_en || "Unknown",
@@ -202,18 +200,19 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
           avatarColor: getAvatarColor(patientData.patient_id),
         };
 
-        // Transform appointments to visit history format
-       const history = appointments.map((apt: any) => ({
-  date: new Date(apt.date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }),
-  type: apt.type === "in-person" ? "In-Person" : "Teleconsultation",
-  doctor: apt.doctor_name || "Dr. Unknown",
-  notes: apt.notes || "No notes",
-  diagnosis: apt.status || "Completed",
-}));
+        // Transform completed visits to Visit history format
+        const history: Visit[] = completedVisits.map((visit: any) => ({
+          id: visit.appointment_id,
+          date: new Date(visit.appointment_date).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          type: visit.consultation_type === "in-person" ? "In-Person" : "Teleconsultation",
+          doctor: visit.doctor_name || "Dr. Unknown",
+          notes: visit.notes || "",
+          diagnosis: visit.diagnosis || "No diagnosis",
+        }));
 
         setPatient(transformedPatient);
         setVisitHistory(history);
@@ -227,7 +226,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
     fetchData();
   }, [patientId]);
 
-  // Handlers for medications and vitals
+  // Handlers (unchanged)
   const handleAddMedication = () => {
     if (newMedication.name && newMedication.dosage) {
       const colors = ["blue", "amber", "green", "purple", "pink"];
@@ -270,7 +269,6 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
     setMedications(medications.filter((med) => med.id !== id));
   };
 
-  // Map avatar colors to Tailwind classes (used in JSX)
   const avatarColorMap: Record<string, string> = {
     blue: "bg-blue-600",
     green: "bg-green-600",
@@ -280,24 +278,23 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
     gray: "bg-gray-600",
   };
 
-  // Tabs configuration
+  // Tabs configuration (unchanged)
   const tabs = [
     { name: "Current Visit", href: `/doctor/ehr/${patientId}/current-visit` },
     { name: "Vitals", href: `/doctor/ehr/${patientId}/vitals` },
     { name: "Prescriptions", href: `/doctor/ehr/${patientId}/prescriptions` },
   ];
 
-  // Determine active tab from pathname
   const activeTab = pathname.split('/').pop() || "current-visit";
 
-  // Compute today's appointment doctor (if any)
+  // Today's appointment doctor (if any) – now from completedVisits, not appointmentsApi
   const todayStr = new Date().toISOString().split('T')[0];
   const todayAppt = appointmentsList.find(
-  apt => apt.date?.split('T')[0] === todayStr
-);
+    (apt: any) => apt.appointment_date?.split('T')[0] === todayStr
+  );
   const todayDoctor = todayAppt ? todayAppt.doctor_name : "";
 
-  // Show loading or error
+  // Loading / error UI (unchanged)
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f6f7f8] flex items-center justify-center">
@@ -352,7 +349,6 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
         error,
       }}
     >
-      {/* Global styles */}
       <style jsx global>{`
         body {
           font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -361,7 +357,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
 
       <div className="bg-[#f6f7f8] min-h-screen text-slate-900 antialiased flex flex-col">
         <main className="flex-1 flex flex-col max-w-[1440px] mx-auto w-full px-2 py-4 gap-4">
-          {/* Profile Header */}
+          {/* Profile Header (unchanged) */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <div
@@ -408,7 +404,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Layout Grid */}
+          {/* Layout Grid (unchanged) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             {/* Left Sidebar: Timeline */}
             <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
@@ -424,6 +420,7 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
                   </button>
                 </div>
                 <div className="p-4 relative">
+                  
                   <div className="grid grid-cols-[24px_1fr] gap-x-4">
                     {/* Current Visit */}
                     <div className="flex flex-col items-center pt-1">
@@ -441,9 +438,9 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
                       </div>
                     </div>
 
-                    {/* Past visits from fetched history */}
+                    {/* Past visits from completed visits */}
                     {visitHistory.slice(0, 3).map((visit, idx) => (
-                      <React.Fragment key={idx}>
+  <React.Fragment key={`${visit.id}-${idx}`}>
                         <div className="flex flex-col items-center pt-1">
                           <div className="w-2 h-2 bg-slate-300 rounded-full z-10"></div>
                           {idx < 2 && <div className="w-[2px] bg-slate-200 h-full -mb-4"></div>}
@@ -463,7 +460,6 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
 
             {/* Right Content Area */}
             <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-4">
-              {/* Tab Navigation */}
               <div className="bg-white rounded-t-xl border border-slate-200 border-b-0">
                 <div className="flex items-center px-6 pt-2 border-b border-slate-200 overflow-x-auto bg-slate-50/50">
                   {tabs.map((tab) => (
@@ -481,8 +477,6 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
                   ))}
                 </div>
               </div>
-
-              {/* Page Content */}
               <div className="bg-white rounded-b-xl border border-slate-200 border-t-0 p-6 md:p-8">
                 {children}
               </div>
@@ -492,7 +486,21 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
 
         {/* Modals */}
         {showHistoryModal && (
-          <VisitHistoryModal history={visitHistory} onClose={() => setShowHistoryModal(false)} />
+          <VisitHistoryModal
+            history={visitHistory}
+            onClose={() => setShowHistoryModal(false)}
+            onVisitClick={(visit) => {
+              setShowHistoryModal(false);
+              // Navigate to the visit details using date
+              const [month, dayWithComma, year] = visit.date.split(' ');
+              const day = parseInt(dayWithComma.replace(',', ''), 10);
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthIndex = monthNames.indexOf(month);
+              if (monthIndex === -1) return;
+              const dateStr = `${year}-${(monthIndex + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+              router.push(`/doctor/ehr/${patientId}/current-visit?date=${dateStr}`);
+            }}
+          />
         )}
         {showAddMedicationModal && (
           <AddMedicationModal
@@ -512,7 +520,6 @@ export default function EHRLayout({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      {/* Fonts and icons */}
       <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <style jsx global>{`

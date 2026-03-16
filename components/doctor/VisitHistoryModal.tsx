@@ -13,12 +13,19 @@ interface Visit {
 interface VisitHistoryModalProps {
   history: Visit[];
   onClose: () => void;
+  onVisitClick?: (visit: Visit) => void;
 }
 
-export default function VisitHistoryModal({ history, onClose }: VisitHistoryModalProps) {
+export default function VisitHistoryModal({ history, onClose, onVisitClick }: VisitHistoryModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose} // Click on backdrop closes modal
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+      >
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-[#137fec] to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
@@ -26,7 +33,9 @@ export default function VisitHistoryModal({ history, onClose }: VisitHistoryModa
             </div>
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Complete Visit History</h2>
-              <p className="text-xs text-slate-500 mt-0.5">All past visits and encounters</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Click on a visit to view details
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
@@ -37,7 +46,11 @@ export default function VisitHistoryModal({ history, onClose }: VisitHistoryModa
         <div className="p-6">
           <div className="space-y-4">
             {history.map((visit, index) => (
-              <div key={index} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition bg-white">
+              <div
+                key={index}
+                onClick={() => onVisitClick?.(visit)}
+                className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition bg-white cursor-pointer"
+              >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">

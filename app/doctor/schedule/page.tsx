@@ -6,135 +6,85 @@ import {
   Calendar,
   Clock,
   User,
-  FileText,
   CheckCircle2,
   Users,
   UserCircle,
-  Plus,
   Edit,
-  Filter,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
 import { useDoctor } from "../layout";
-import ManageAvailabilityModal from "@/components/doctor/AddVitalsModal";
-import NewAppointmentModal from "@/components/doctor/AddMedicationModal";
-import EditAppointmentModal from "@/components/doctor/VisitHistoryModal";
+import ColumnFilterPopover, { ColumnFilterPopoverProps } from "@/components/doctor/ColumnFilterPopover";
 
-// Filter Popover Component (same as before)
-function ColumnFilterPopover({
-  column,
-  placeholder = "Filter...",
-  options,
-  onFilter,
-  currentValue,
-}: {
-  column: string;
-  placeholder?: string;
-  options?: string[];
-  onFilter: (column: string, value: string) => void;
-  currentValue?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [filterValue, setFilterValue] = useState(currentValue || "");
+// ===== Type Definitions =====
 
-  const handleApply = () => {
-    onFilter(column, filterValue);
-    setOpen(false);
-  };
-
-  const handleClear = () => {
-    setFilterValue("");
-    onFilter(column, "");
-    setOpen(false);
-  };
-
-  return (
-    <div className="relative inline-block">
-      <button
-        onClick={() => setOpen(!open)}
-        className={`ml-1 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-          currentValue ? "text-blue-600 dark:text-blue-400" : "text-gray-400"
-        }`}
-      >
-        <Filter className="h-3.5 w-3.5" />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm text-gray-900 dark:text-white">
-              Filter by {column}
-            </h4>
-            {options ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {options.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setFilterValue(opt);
-                      onFilter(column, opt);
-                      setOpen(false);
-                    }}
-                    className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      currentValue === opt
-                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600"
-                        : "text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder={placeholder}
-                  value={filterValue}
-                  onChange={(e) => setFilterValue(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-            )}
-            <div className="flex justify-between gap-2">
-              <button
-                onClick={handleClear}
-                className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-              >
-                Clear
-              </button>
-              <button
-                onClick={handleApply}
-                className="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+// Re-export Appointment type (can also be imported from a shared types file)
+export interface Appointment {
+  id: string;
+  time: string;
+  name: string;
+  age: number;
+  gender: string;
+  reason: string;
+  meta: string;
+  type: string;
+  status: string;
+  statusColor: string;
+  action: string;
+  icon: React.ReactNode;
+  highlight?: boolean;
+  notes?: string;
 }
+
+// Columns that are filterable
+type FilterableColumn = "name" | "type" | "status";
+
+// Filter state structure
+interface ColumnFilter {
+  column: FilterableColumn;
+  value: string;
+}
+
+// Sort configuration
+interface SortConfig {
+  key: keyof Appointment;
+  direction: "asc" | "desc";
+}
+
+// ===== Modal Component Props (if not already defined) =====
+// These should match the actual modal components you have.
+// Replace with correct imports if those components export their own props.
+interface ManageAvailabilityModalProps {
+  onClose: () => void;
+}
+
+interface NewAppointmentModalProps {
+  onClose: () => void;
+}
+
+interface EditAppointmentModalProps {
+  appointment: Appointment;
+  onSave: (updated: Appointment) => void;
+  onClose: () => void;
+}
+
+// ===== Main Component =====
 
 export default function SchedulePage() {
   const { appointments, setAppointments } = useDoctor();
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
-  const [columnFilters, setColumnFilters] = useState<{ column: string; value: string }[]>([]);
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof Appointment;
-    direction: "asc" | "desc";
-  } | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [columnFilters, setColumnFilters] = useState<ColumnFilter[]>([]);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
-  const handleEditAppointment = (appointment: any) => {
+  const handleEditAppointment = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setShowEditModal(true);
   };
 
-  const handleSaveEdit = (updatedAppointment: any) => {
+  const handleSaveEdit = (updatedAppointment: Appointment) => {
     setAppointments(appointments.map(apt =>
       apt.id === updatedAppointment.id ? updatedAppointment : apt
     ));
@@ -143,26 +93,27 @@ export default function SchedulePage() {
   };
 
   const handleColumnFilter = (column: string, value: string) => {
+    // Ensure column is one of the allowed filterable columns
+    if (!["name", "type", "status"].includes(column)) return;
+
     setColumnFilters(prev => {
       const filtered = prev.filter(f => f.column !== column);
-      return value ? [...filtered, { column, value }] : filtered;
+      return value ? [...filtered, { column: column as FilterableColumn, value }] : filtered;
     });
   };
 
-  // Filter appointments
   const filteredAppointments = useMemo(() => {
     let filtered = appointments.filter(appointment => {
       return columnFilters.every(filter => {
-        const value = appointment[filter.column as keyof Appointment];
+        const value = appointment[filter.column];
         return value?.toString().toLowerCase().includes(filter.value.toLowerCase());
       });
     });
 
-    // Sorting
     if (sortConfig) {
       filtered.sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
+        const aVal = a[sortConfig.key];
+        const bVal = b[sortConfig.key];
         if (typeof aVal === 'string' && typeof bVal === 'string') {
           return sortConfig.direction === 'asc'
             ? aVal.localeCompare(bVal)
@@ -196,7 +147,6 @@ export default function SchedulePage() {
     setSortConfig(null);
   };
 
-  // Get unique options for filter dropdowns
   const typeOptions = Array.from(new Set(appointments.map(a => a.type)));
   const statusOptions = Array.from(new Set(appointments.map(a => a.status)));
 
@@ -251,11 +201,11 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {/* TABLE - horizontally scrollable on mobile with filters */}
+        {/* TABLE */}
         <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <div className="min-w-[1000px] lg:min-w-full">
-              {/* Table Header with Filters - thicker vertical borders */}
+              {/* Table Header with Filters */}
               <div className="grid grid-cols-12 px-6 py-4 text-xs text-gray-500 font-semibold bg-gray-50 border-b border-gray-200">
                 <div className="col-span-2 flex items-center gap-1 border-r-2 border-gray-200 pr-4">
                   <Clock className="w-3 h-3" /> TIME
@@ -265,7 +215,7 @@ export default function SchedulePage() {
                 </div>
                 <div className="col-span-4 flex items-center gap-1 border-r-2 border-gray-200 px-4">
                   <User className="w-3 h-3" /> PATIENT DETAILS
-                  <ColumnFilterPopover
+                  <ColumnFilterPopover<FilterableColumn>
                     column="name"
                     placeholder="Filter by name..."
                     onFilter={handleColumnFilter}
@@ -277,7 +227,7 @@ export default function SchedulePage() {
                 </div>
                 <div className="col-span-2 flex items-center justify-center gap-1 border-r-2 border-gray-200 px-4">
                   TYPE
-                  <ColumnFilterPopover
+                  <ColumnFilterPopover<FilterableColumn>
                     column="type"
                     options={typeOptions}
                     onFilter={handleColumnFilter}
@@ -289,7 +239,7 @@ export default function SchedulePage() {
                 </div>
                 <div className="col-span-2 flex items-center justify-center gap-1 border-r-2 border-gray-200 px-4">
                   STATUS
-                  <ColumnFilterPopover
+                  <ColumnFilterPopover<FilterableColumn>
                     column="status"
                     options={statusOptions}
                     onFilter={handleColumnFilter}
@@ -302,7 +252,7 @@ export default function SchedulePage() {
                 <div className="col-span-2 text-center">ACTIONS</div>
               </div>
 
-              {/* Table Rows - thicker vertical borders */}
+              {/* Table Rows */}
               {filteredAppointments.map((appointment) => (
                 <div key={appointment.id} className={`border-b border-gray-200 ${appointment.highlight ? 'bg-blue-50' : ''}`}>
                   <div className="grid grid-cols-12 px-6 py-4 items-center hover:bg-gray-50 transition">
@@ -347,7 +297,7 @@ export default function SchedulePage() {
                 </div>
               ))}
 
-              {/* Available Slot Row (always shown) */}
+              {/* Available Slot Row */}
               <div className="px-6 py-4 text-gray-400 italic text-sm flex items-center gap-2 border-t border-gray-200">
                 <Clock className="w-4 h-4" />
                 11:00 AM · Available Slot
@@ -368,7 +318,7 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Modals – ensure these components exist and are correctly imported
       {showAvailabilityModal && (
         <ManageAvailabilityModal onClose={() => setShowAvailabilityModal(false)} />
       )}
@@ -384,7 +334,7 @@ export default function SchedulePage() {
             setSelectedAppointment(null);
           }}
         />
-      )}
+      )} */}
     </>
   );
 }

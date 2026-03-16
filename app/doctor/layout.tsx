@@ -83,55 +83,55 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
       setLoading(true);
       setError(null);
       try {
-        console.log('Fetching appointments for doctor:', doctorId);
-        const appointmentsRes = await appointmentsApi.getDoctorAppointments(doctorId);
-        console.log('Raw API response:', appointmentsRes);
+   const todayStr = new Date().toISOString().split('T')[0];
+        const appointmentsRes = await appointmentsApi.getDoctorAppointmentsByDate(doctorId,todayStr);
+      
 
         // Extract data from the nested structure
         const apiData = appointmentsRes.data?.data || appointmentsRes.data;
-        console.log('Extracted data:', apiData);
+         
 
         if (Array.isArray(apiData) && apiData.length > 0) {
           // Transform appointments
           const fetchedAppointments = apiData.map((item: any) => {
-            // Calculate age safely
-            let age = 0;
-            if (item.patient_dob) {
-              try {
-                const birthDate = new Date(item.patient_dob);
-                age = new Date().getFullYear() - birthDate.getFullYear();
-              } catch (e) {
-                console.warn('Invalid DOB:', item.patient_dob);
-              }
-            }
+  // Calculate age safely
+  let age = 0;
+  if (item.patient_dob) {
+    try {
+      const birthDate = new Date(item.patient_dob);
+      age = new Date().getFullYear() - birthDate.getFullYear();
+    } catch (e) {
+      console.warn('Invalid DOB:', item.patient_dob);
+    }
+  }
 
-            // Format gender
-            let genderDisplay = 'Other';
-            if (item.patient_gender === 'male') genderDisplay = 'M';
-            else if (item.patient_gender === 'female') genderDisplay = 'F';
+  // Format gender with fallback
+  let genderDisplay = '—';
+  if (item.patient_gender === 'male') genderDisplay = 'M';
+  else if (item.patient_gender === 'female') genderDisplay = 'F';
 
-            // Create meta string
-            const genderInitial = item.patient_gender?.charAt(0).toUpperCase() || '?';
-            const meta = `${genderInitial} • ${item.consultation_type || 'Consultation'}`;
+  // Build meta string (gender initial + consultation type)
+  const genderInitial = item.patient_gender?.charAt(0).toUpperCase() || '?';
+  const meta = `${genderInitial} • ${item.consultation_type || 'Consultation'}`;
 
-            return {
-              id: item.patient_id, // Using patient_id as unique key for appointments list
-              time: item.appointment_time || '--:--',
-              name: item.patient_name || '',
-              age,
-              gender: genderDisplay,
-              reason: item.consultation_type || 'Consultation',
-              meta,
-              type: item.consultation_type || 'In-Person',
-              status: item.status || 'BOOKED',
-              statusColor: getStatusColor(item.status),
-              action: 'View',
-              icon: <User className="w-3 h-3" />,
-              notes: item.notes || '',
-            };
-          });
+  return {
+    id: item.appointment_id,                          // ✅ unique key
+    time: item.appointment_time || '--:--',
+    name: item.patient_name || 'Unknown Patient',      // ✅ fallback name
+    age,
+    gender: genderDisplay,
+    reason: item.consultation_type || 'Consultation',
+    meta,
+    type: item.consultation_type || 'In-Person',
+    status: item.status || 'BOOKED',
+    statusColor: getStatusColor(item.status),
+    action: 'View',
+    icon: <User className="w-3 h-3" />,
+    notes: item.notes || '',
+  };
+});
 
-          console.log('Transformed appointments:', fetchedAppointments);
+        
           setAppointments(fetchedAppointments);
 
           // Derive unique patients
@@ -153,7 +153,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             }
           });
           const patientsArray = Array.from(uniquePatients.values());
-          console.log('Derived patients:', patientsArray);
+          
           setPatients(patientsArray);
         } else {
           console.log('No appointments found for this doctor');
@@ -227,17 +227,10 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         </button>
 
         {/* Sidebar */}
-        <DoctorSidebar
-          collapsed={sidebarCollapsed}
-          activeSection={activeSection}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          navItems={navItems}
-          doctorName="Dr. Sarah Bennett"
-          doctorSpecialty="Cardiology"
-          doctorInitials="SB"
-          isMobileOpen={mobileSidebarOpen}
-          onMobileClose={() => setMobileSidebarOpen(false)}
-        />
+       <DoctorSidebar
+  isOpen={mobileSidebarOpen}
+  onClose={() => setMobileSidebarOpen(false)}
+/>
 
         {/* Backdrop overlay for mobile */}
         {mobileSidebarOpen && (

@@ -15,6 +15,9 @@ export const appointmentsApi = {
   getDoctorAppointments: (doctorId: number) =>
     api.get(`/api/appointments/doctor/${doctorId}`),
 
+   getDoctorAppointmentsByDate: (doctorId: number, date: string) =>
+    api.get(`/api/appointments/doctor/${doctorId}?date=${date}`),
+
   // Create a new appointment
   createAppointment: (data: any) => api.post('/api/appointments', data),
 

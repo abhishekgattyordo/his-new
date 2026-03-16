@@ -1,3 +1,6 @@
+
+
+
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
@@ -17,10 +20,14 @@ export async function GET(
     }
 
     const doctorIdNum = parseInt(doctorId);
+    
+    // Get date query parameter if present
+    const url = new URL(req.url);
+    const date = url.searchParams.get('date'); // e.g., "2026-03-13"
 
-    // Query to get all appointments for this doctor with patient info
-    const result = await query(
-      `SELECT 
+    // Build query dynamically – use LEFT JOIN to include appointments without patients
+    let sql = `
+      SELECT 
         a.id AS appointment_id,
         a.appointment_date,
         a.appointment_time,
@@ -35,11 +42,21 @@ export async function GET(
         p.email AS patient_email,
         p.blood_group
       FROM appointments a
-      JOIN patients p ON a.patient_id = p.patient_id
+      LEFT JOIN patients p ON a.patient_id = p.patient_id
       WHERE a.doctor_id = $1
-      ORDER BY a.appointment_date DESC, a.appointment_time DESC`,
-      [doctorIdNum]
-    );
+    `;
+    const values: any[] = [doctorIdNum];
+    let paramIndex = 2;
+
+    if (date) {
+      sql += ` AND a.appointment_date = $${paramIndex}::date`;
+      values.push(date);
+      paramIndex++;
+    }
+
+    sql += ` ORDER BY a.appointment_date DESC, a.appointment_time DESC`;
+
+    const result = await query(sql, values);
 
     return NextResponse.json({
       success: true,

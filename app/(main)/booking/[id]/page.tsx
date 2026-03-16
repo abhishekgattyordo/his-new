@@ -49,6 +49,27 @@ interface Doctor {
   isVerified:boolean;
 }
 
+interface BookingDoctor {
+  id: string;
+  name: string;
+  specialty: string;
+  rating: number;
+  reviews: number;
+  experience: number;
+  image: string;
+  fees: number;
+  education: string[];   // changed from string to string[]
+  languages: string[];
+  availability: {
+    morning: any[];
+    afternoon: any[];
+    evening: any[];
+  };
+  isOnline: boolean;
+  isVerified: boolean;
+}
+
+
 interface AppointmentData {
   consultationType: "in-person" | "teleconsultation";
   selectedDate: string;
@@ -167,7 +188,7 @@ function BookingPageContent() {
   const router = useRouter();
   const doctorId = params.id as string;
 
-  const [doctor, setDoctor] = useState<Doctor | null>(null);
+ const [doctor, setDoctor] = useState<BookingDoctor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
@@ -206,7 +227,7 @@ function BookingPageContent() {
 
         const doc = response.data.data || response.data;
 
-        const doctorData: Doctor = {
+        const doctorData: BookingDoctor = {
           id: doc.id.toString(),
           name: `Dr. ${doc.firstName} ${doc.lastName}`,
           specialty: doc.specialty || "General",
@@ -290,57 +311,66 @@ function BookingPageContent() {
 
   // Generate calendar days for full calendar view
   useEffect(() => {
-    if (!doctor) return;
-    const generateCalendar = () => {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const daysInMonth = lastDay.getDate();
-      const firstDayIndex = firstDay.getDay();
-      const prevMonthLastDay = new Date(year, month, 0).getDate();
-      const days: CalendarDay[] = [];
+  if (!doctor) return;
+  const generateCalendar = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const firstDayIndex = firstDay.getDay(); // 0 = Sunday
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
 
-      for (let i = firstDayIndex - 1; i >= 0; i--) {
-        days.push({
-          day: prevMonthLastDay - i,
-          month: "previous",
-          available: false,
-          selected: false,
-        });
-      }
+    const days: CalendarDay[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-      const today = new Date();
-      for (let i = 1; i <= daysInMonth; i++) {
-        const isPast =
-          new Date(year, month, i) < new Date(new Date().setHours(0, 0, 0, 0));
-        const isSelectedDate =
-          appointmentData.selectedDate ===
-          new Date(year, month, i).toISOString().split("T")[0];
+    // Previous month days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNumber = prevMonthLastDay - i;
+      const date = new Date(year, month - 1, dayNumber);
+      days.push({
+        date,
+        isCurrentMonth: false,
+        hasSlots: false,
+        isPast: date < today,
+        isSelected: false,
+      });
+    }
 
-        days.push({
-          day: i,
-          month: "current",
-          available: !isPast,
-          selected: isSelectedDate,
-        });
-      }
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month, i);
+      const isPast = date < today;
+      const isSelectedDate =
+        appointmentData.selectedDate === date.toISOString().split("T")[0];
+      days.push({
+        date,
+        isCurrentMonth: true,
+        hasSlots: !isPast, // assume future dates have slots (actual check later)
+        isPast,
+        isSelected: isSelectedDate,
+      });
+    }
 
-      const totalCells = 42;
-      const nextDays = totalCells - days.length;
-      for (let i = 1; i <= nextDays; i++) {
-        days.push({
-          day: i,
-          month: "next",
-          available: false,
-          selected: false,
-        });
-      }
+    // Next month days to fill grid (42 cells)
+    const totalCells = 42;
+    const remaining = totalCells - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const date = new Date(year, month + 1, i);
+      days.push({
+        date,
+        isCurrentMonth: false,
+        hasSlots: false,
+        isPast: date < today,
+        isSelected: false,
+      });
+    }
 
-      setCalendarDays(days);
-    };
-    generateCalendar();
-  }, [currentMonth, doctor, appointmentData.selectedDate]);
+    setCalendarDays(days);
+  };
+  generateCalendar();
+}, [currentMonth, doctor, appointmentData.selectedDate]);
 
   const updateAppointmentData = <K extends keyof AppointmentData>(
     key: K,
@@ -645,45 +675,35 @@ function BookingPageContent() {
                         ))}
                       </div>
                       <div className="grid grid-cols-7 gap-y-1">
-                        {calendarDays.map((calendarDay, index) => (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              if (
-                                calendarDay.month === "current" &&
-                                calendarDay.available
-                              ) {
-                                const date = new Date(
-                                  currentMonth.getFullYear(),
-                                  currentMonth.getMonth(),
-                                  calendarDay.day
-                                );
-                                const dateStr = date.toISOString().split("T")[0];
-                                handleDateSelect(dateStr);
-                              }
-                            }}
-                            className={`h-10 w-full flex items-center justify-center text-sm transition-colors relative ${
-                              calendarDay.month !== "current"
-                                ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                                : !calendarDay.available
-                                ? "text-slate-300 dark:text-slate-600 line-through decoration-slate-400 cursor-not-allowed"
-                                : calendarDay.selected
-                                ? "bg-green-500 text-white font-semibold"
-                                : "text-slate-700 dark:text-slate-300 hover:bg-green-500/10 hover:text-green-500"
-                            }`}
-                            disabled={
-                              !calendarDay.available || calendarDay.month !== "current"
-                            }
-                          >
-                            {calendarDay.day}
-                            {calendarDay.selected && (
-                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm border-2 border-white dark:border-slate-800">
-                                <Check className="w-3 h-3 text-white" />
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
+  {calendarDays.map((calendarDay, index) => (
+    <button
+      key={index}
+      onClick={() => {
+        if (calendarDay.isCurrentMonth && calendarDay.hasSlots) {
+          const dateStr = calendarDay.date.toISOString().split("T")[0];
+          handleDateSelect(dateStr);
+        }
+      }}
+      className={`h-10 w-full flex items-center justify-center text-sm transition-colors relative ${
+        !calendarDay.isCurrentMonth
+          ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+          : !calendarDay.hasSlots
+          ? "text-slate-300 dark:text-slate-600 line-through decoration-slate-400 cursor-not-allowed"
+          : calendarDay.isSelected
+          ? "bg-green-500 text-white font-semibold"
+          : "text-slate-700 dark:text-slate-300 hover:bg-green-500/10 hover:text-green-500"
+      }`}
+      disabled={!calendarDay.hasSlots || !calendarDay.isCurrentMonth}
+    >
+      {calendarDay.date.getDate()}
+      {calendarDay.isSelected && (
+        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm border-2 border-white dark:border-slate-800">
+          <Check className="w-3 h-3 text-white" />
+        </div>
+      )}
+    </button>
+  ))}
+</div>
                     </div>
                   </div>
                 )}
