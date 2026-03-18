@@ -403,17 +403,11 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
     {
       icon: User,
       label: 'New Appointment',
-      href: '/doctor/appointments/new',
+      href: '/doctor/patients/new',
       iconBg: 'bg-blue-50 dark:bg-blue-900/30',
       iconColor: 'text-blue-600 dark:text-blue-400',
-    },
-    {
-      icon: FileText,
-      label: 'Medical Records',
-      href: '/doctor/records',
-      iconBg: 'bg-emerald-50 dark:bg-emerald-900/30',
-      iconColor: 'text-emerald-600 dark:text-emerald-400',
-    },
+    }
+  
   ];
 
   const handleLinkClick = () => {

@@ -4,7 +4,15 @@
 import React, { useState, createContext, useContext, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import DoctorSidebar from "@/components/doctor/DoctorSidebar";
-import { Menu, X, Calendar, LayoutDashboard, Users, CreditCard, User } from "lucide-react";
+import {
+  Menu,
+  X,
+  Calendar,
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  User,
+} from "lucide-react";
 import { appointmentsApi } from "@/lib/api/appointments";
 
 // Types
@@ -23,6 +31,7 @@ export interface Appointment {
   icon: React.ReactNode;
   highlight?: boolean;
   notes?: string;
+ patientId?: string;
 }
 
 export interface Patient {
@@ -65,7 +74,11 @@ export const useDoctor = () => {
   return context;
 };
 
-export default function DoctorLayout({ children }: { children: React.ReactNode }) {
+export default function DoctorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -76,62 +89,74 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const doctorId = 4; // Replace with actual logged-in doctor's ID
+const [doctorId, setDoctorId] = useState<number | null>(null);
+
+useEffect(() => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    setDoctorId(user.id);
+  } else {
+    setError("Not authenticated");
+  }
+}, []);
 
   useEffect(() => {
+
+    if (!doctorId) return;
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-   const todayStr = new Date().toISOString().split('T')[0];
-        const appointmentsRes = await appointmentsApi.getDoctorAppointmentsByDate(doctorId,todayStr);
-      
+        const todayStr = new Date().toISOString().split("T")[0];
+        const appointmentsRes =
+          await appointmentsApi.getDoctorAppointmentsByDate(doctorId, todayStr);
 
         // Extract data from the nested structure
         const apiData = appointmentsRes.data?.data || appointmentsRes.data;
-         
 
         if (Array.isArray(apiData) && apiData.length > 0) {
           // Transform appointments
           const fetchedAppointments = apiData.map((item: any) => {
-  // Calculate age safely
-  let age = 0;
-  if (item.patient_dob) {
-    try {
-      const birthDate = new Date(item.patient_dob);
-      age = new Date().getFullYear() - birthDate.getFullYear();
-    } catch (e) {
-      console.warn('Invalid DOB:', item.patient_dob);
-    }
-  }
+            // Calculate age safely
+            let age = 0;
+            if (item.patient_dob) {
+              try {
+                const birthDate = new Date(item.patient_dob);
+                age = new Date().getFullYear() - birthDate.getFullYear();
+              } catch (e) {
+                console.warn("Invalid DOB:", item.patient_dob);
+              }
+            }
 
-  // Format gender with fallback
-  let genderDisplay = '—';
-  if (item.patient_gender === 'male') genderDisplay = 'M';
-  else if (item.patient_gender === 'female') genderDisplay = 'F';
+            // Format gender with fallback
+            let genderDisplay = "—";
+            if (item.patient_gender === "male") genderDisplay = "M";
+            else if (item.patient_gender === "female") genderDisplay = "F";
 
-  // Build meta string (gender initial + consultation type)
-  const genderInitial = item.patient_gender?.charAt(0).toUpperCase() || '?';
-  const meta = `${genderInitial} • ${item.consultation_type || 'Consultation'}`;
+            // Build meta string (gender initial + consultation type)
+            const genderInitial =
+              item.patient_gender?.charAt(0).toUpperCase() || "?";
+            const meta = `${genderInitial} • ${item.consultation_type || "Consultation"}`;
 
-  return {
-    id: item.appointment_id,                          // ✅ unique key
-    time: item.appointment_time || '--:--',
-    name: item.patient_name || 'Unknown Patient',      // ✅ fallback name
-    age,
-    gender: genderDisplay,
-    reason: item.consultation_type || 'Consultation',
-    meta,
-    type: item.consultation_type || 'In-Person',
-    status: item.status || 'BOOKED',
-    statusColor: getStatusColor(item.status),
-    action: 'View',
-    icon: <User className="w-3 h-3" />,
-    notes: item.notes || '',
-  };
-});
+            return {
+              id: item.appointment_id, // ✅ unique key
+              time: item.appointment_time || "--:--",
+              name: item.patient_name || "Unknown Patient", // ✅ fallback name
+              age,
+              gender: genderDisplay,
+              reason: item.consultation_type || "Consultation",
+              meta,
+              type: item.consultation_type || "In-Person",
+              status: item.status || "BOOKED",
+              statusColor: getStatusColor(item.status),
+              action: "View",
+              icon: <User className="w-3 h-3" />,
+              notes: item.notes || "",
+              patientId: item.patient_id,
+            };
+          });
 
-        
           setAppointments(fetchedAppointments);
 
           // Derive unique patients
@@ -141,31 +166,58 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             if (!uniquePatients.has(item.patient_id)) {
               uniquePatients.set(item.patient_id, {
                 id: item.patient_id,
-                name: item.patient_name || '',
+                name: item.patient_name || "",
                 age: calculateAge(item.patient_dob),
-                gender: item.patient_gender || 'Unknown',
-                lastVisit: item.appointment_date ? new Date(item.appointment_date).toLocaleDateString() : 'N/A',
-                condition: 'N/A', // Not available from appointments
-                status: 'Active',
-                phone: item.patient_phone || '',
-                email: item.patient_email || '',
+                gender: item.patient_gender || "Unknown",
+                lastVisit: item.appointment_date
+                  ? new Date(item.appointment_date).toLocaleDateString()
+                  : "N/A",
+                condition: "N/A", // Not available from appointments
+                status: "Active",
+                phone: item.patient_phone || "",
+                email: item.patient_email || "",
               });
             }
           });
           const patientsArray = Array.from(uniquePatients.values());
-          
+
           setPatients(patientsArray);
         } else {
-          console.log('No appointments found for this doctor');
+          console.log("No appointments found for this doctor");
           setAppointments([]);
           setPatients([]);
         }
 
+        // Fetch all patients added by this doctor
+      let allPatients: Patient[] = [];
+      try {
+        const patientsRes = await fetch(`/api/admin/patients?added_by_doctor_id=${doctorId}`);
+        const patientsData = await patientsRes.json();
+        if (patientsData.success) {
+          allPatients = patientsData.data.map((p: any) => ({
+            id: p.patient_id,
+            name: p.full_name_en || '',
+            age: calculateAge(p.dob),
+            gender: p.gender === 'male' ? 'M' : p.gender === 'female' ? 'F' : 'Other',
+            lastVisit: 'N/A',
+            condition: 'N/A',
+            status: 'Active',
+            phone: p.phone || '',
+            email: p.email || '',
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching all patients:', err);
+      }
+
+      // Use the full list if available, otherwise fallback to today's patients
+      setPatients(allPatients.length > 0 ? allPatients : []);
+
         // TODO: Fetch invoices if endpoint exists
         setInvoices([]);
       } catch (err) {
-        console.error('Error in fetchData:', err);
-        setError('Failed to load data. Please try again.');
+        console.error("Error in fetchData:", err);
+        setError("Failed to load data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -187,33 +239,71 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'BOOKED':
-        return 'text-blue-600 bg-blue-100';
-      case 'COMPLETED':
-        return 'text-green-600 bg-green-50';
-      case 'CANCELLED':
-        return 'text-red-600 bg-red-50';
+      case "BOOKED":
+        return "text-blue-600 bg-blue-100";
+      case "COMPLETED":
+        return "text-green-600 bg-green-50";
+      case "CANCELLED":
+        return "text-red-600 bg-red-50";
       default:
-        return 'text-gray-600 bg-gray-100';
+        return "text-gray-600 bg-gray-100";
     }
   };
 
   // Navigation items
   const navItems = [
-    { id: "schedule", label: "Schedule", icon: <Calendar className="w-5 h-5" />, badge: appointments.length.toString() },
-    { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { id: "patients", label: "Patients", icon: <Users className="w-5 h-5" />, badge: patients.length.toString() },
-    { id: "billing", label: "Billing", icon: <CreditCard className="w-5 h-5" />, badge: invoices.filter(i => i.status === "Pending").length.toString() },
+    {
+      id: "schedule",
+      label: "Schedule",
+      icon: <Calendar className="w-5 h-5" />,
+      badge: appointments.length.toString(),
+    },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: <LayoutDashboard className="w-5 h-5" />,
+    },
+    {
+      id: "patients",
+      label: "Patients",
+      icon: <Users className="w-5 h-5" />,
+      badge: patients.length.toString(),
+    },
+    {
+      id: "billing",
+      label: "Billing",
+      icon: <CreditCard className="w-5 h-5" />,
+      badge: invoices.filter((i) => i.status === "Pending").length.toString(),
+    },
   ];
 
-  const activeSection = pathname.split('/')[2] || "schedule";
+  const activeSection = pathname.split("/")[2] || "schedule";
 
   return (
-    <DoctorContext.Provider value={{ appointments, setAppointments, patients, setPatients, invoices, setInvoices, loading, error }}>
+    <DoctorContext.Provider
+      value={{
+        appointments,
+        setAppointments,
+        patients,
+        setPatients,
+        invoices,
+        setInvoices,
+        loading,
+        error,
+      }}
+    >
       <div className="min-h-screen bg-[#f6f7f8] flex font-sans">
         <style jsx global>{`
           body {
-            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            font-family:
+              "Inter",
+              system-ui,
+              -apple-system,
+              BlinkMacSystemFont,
+              "Segoe UI",
+              Roboto,
+              "Helvetica Neue",
+              sans-serif;
           }
         `}</style>
 
@@ -223,14 +313,18 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
           aria-label="Toggle menu"
         >
-          {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileSidebarOpen ? (
+            <X className="w-5 h-5" />
+          ) : (
+            <Menu className="w-5 h-5" />
+          )}
         </button>
 
         {/* Sidebar */}
-       <DoctorSidebar
-  isOpen={mobileSidebarOpen}
-  onClose={() => setMobileSidebarOpen(false)}
-/>
+        <DoctorSidebar
+          isOpen={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+        />
 
         {/* Backdrop overlay for mobile */}
         {mobileSidebarOpen && (
@@ -247,7 +341,9 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent animate-spin rounded-full"></div>
               </div>
             ) : error ? (
-              <div className="flex items-center justify-center h-full text-red-600">{error}</div>
+              <div className="flex items-center justify-center h-full text-red-600">
+                {error}
+              </div>
             ) : (
               children
             )}
@@ -255,7 +351,10 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         </div>
       </div>
 
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
     </DoctorContext.Provider>
   );
 }

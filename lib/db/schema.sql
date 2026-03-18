@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS patients (
     registration_step INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    added_by_doctor_id INTEGER REFERENCES doctors(id) 
 );
 
 -- Create indexes (including new columns)
@@ -678,4 +679,17 @@ CREATE TABLE vitals (
   spo2 INTEGER,
   recorded_by VARCHAR(100),
   recorded_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE prescriptions (
+  id SERIAL PRIMARY KEY,
+  appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+  medication_name VARCHAR(255) NOT NULL,
+  category VARCHAR(100),
+  dosage VARCHAR(100) NOT NULL,
+  frequency VARCHAR(100),
+  duration VARCHAR(100),
+  instructions TEXT,
+  recorded_by VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW()
 );

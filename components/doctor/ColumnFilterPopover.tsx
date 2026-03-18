@@ -46,7 +46,7 @@ export default function ColumnFilterPopover<TColumn extends string = string>({
         <Filter className="h-3.5 w-3.5" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+<div className="absolute left-0 top-full mt-2 z-50 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="space-y-4">
             <h4 className="font-medium text-sm text-gray-900 dark:text-white">
               Filter by {column}

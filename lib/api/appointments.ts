@@ -1,5 +1,12 @@
 import api from './client';
 
+
+interface ApiResponse {
+  success: boolean;
+  message?: string;
+  data?: any;
+}
+
 export const appointmentsApi = {
   // Get all appointments (with optional filters)
   getAppointments: (params?: any) => api.get('/api/appointments', { params }),
@@ -19,12 +26,14 @@ export const appointmentsApi = {
     api.get(`/api/appointments/doctor/${doctorId}?date=${date}`),
 
   // Create a new appointment
-  createAppointment: (data: any) => api.post('/api/appointments', data),
+    createAppointment: (data: any): Promise<ApiResponse> =>
+    api.post('/api/appointments/patient', data),
 
   // Update an existing appointment
   updateAppointment: (id: string, data: any) =>
     api.put(`/api/appointments/${id}`, data),
 
   // Delete an appointment
-  deleteAppointment: (id: string) => api.delete(`/api/appointments/${id}`),
+  deleteAppointment: (id: string): Promise<ApiResponse> =>
+    api.delete(`/api/appointments/${id}`),
 };
