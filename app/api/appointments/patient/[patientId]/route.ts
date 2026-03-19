@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
@@ -8,11 +7,16 @@ export async function GET(
 ) {
   try {
     const { patientId } = await params;
-    
-    console.log("📡 Fetching appointments for patient:", patientId);
 
-    const result = await query(
-      `SELECT 
+    // Get date query parameter if present
+    const url = new URL(req.url);
+    const date = url.searchParams.get('date'); // expected format: YYYY-MM-DD
+
+    console.log("📡 Fetching appointments for patient:", patientId, date ? `on date: ${date}` : '');
+
+    // Build query dynamically
+    let sql = `
+      SELECT 
         a.id,
         a.appointment_date as date,
         a.appointment_time as time,
@@ -26,9 +30,27 @@ export async function GET(
       FROM appointments a
       JOIN doctors d ON a.doctor_id = d.id
       WHERE a.patient_id = $1
-      ORDER BY a.appointment_date DESC, a.appointment_time DESC`,
-      [patientId]
-    );
+    `;
+
+    const values: any[] = [patientId];
+    let paramIndex = 2;
+
+    if (date) {
+      // Validate date format (simple regex)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid date format. Use YYYY-MM-DD.' },
+          { status: 400 }
+        );
+      }
+      sql += ` AND a.appointment_date = $${paramIndex}::date`;
+      values.push(date);
+      paramIndex++;
+    }
+
+    sql += ` ORDER BY a.appointment_date DESC, a.appointment_time DESC`;
+
+    const result = await query(sql, values);
 
     console.log(`✅ Found ${result.rows.length} appointments for patient ${patientId}`);
 

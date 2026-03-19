@@ -18,6 +18,13 @@ export const appointmentsApi = {
   getPatientAppointments: (patientId: string) =>
     api.get(`/api/appointments/patient/${patientId}`),
 
+   getPatientAppointmentsByDate: (patientId: string, date?: string) => {
+    const url = date 
+      ? `/api/appointments/patient/${patientId}?date=${date}`
+      : `/api/appointments/patient/${patientId}`;
+    return api.get(url);
+  },
+
   // Get appointments for a specific doctor
   getDoctorAppointments: (doctorId: number) =>
     api.get(`/api/appointments/doctor/${doctorId}`),

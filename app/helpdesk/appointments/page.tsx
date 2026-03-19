@@ -624,52 +624,53 @@ export default function HelpDeskPage() {
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="space-y-6">
-            <HelpDeskStats />
+        <main className="flex-1 flex flex-col overflow-hidden p-4 sm:p-6 lg:p-8">
+  <div className="space-y-6 flex-1 flex flex-col min-h-0">
+    <HelpDeskStats />
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="w-full sm:w-auto">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
-                  Appointments
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">Manage appointments and schedules</p>
-              </div>
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="w-full sm:w-auto">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
+          Appointments
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">Manage appointments and schedules</p>
+      </div>
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2 whitespace-nowrap"
+        >
+          <span className="material-icons text-sm">add</span>
+          New Appointment
+        </button>
+      </div>
+    </div>
 
-              {/* Date Picker */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2 whitespace-nowrap"
-                >
-                  <span className="material-icons text-sm">add</span>
-                  New Appointment
-                </button>
-              </div>
-            </div>
-
-            {loadingAppointments ? (
-              <div className="text-center py-8 text-gray-500">Loading appointments...</div>
-            ) : (
-              <AppointmentsTable
-                appointments={appointments}
-                doctors={doctors}
-                onConfirm={handleConfirm}
-                onComplete={handleComplete}
-                onEdit={handleEdit}
-                onCancel={handleCancel}
-                getStatusColor={getStatusColor}
-                getTypeColor={getTypeColor}
-              />
-            )}
-          </div>
-        </main>
+    {/* Scrollable Table Container */}
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      {loadingAppointments ? (
+        <div className="text-center py-8 text-gray-500">Loading appointments...</div>
+      ) : (
+        <AppointmentsTable
+          appointments={appointments}
+          doctors={doctors}
+          onConfirm={handleConfirm}
+          onComplete={handleComplete}
+          onEdit={handleEdit}
+          onCancel={handleCancel}
+          getStatusColor={getStatusColor}
+          getTypeColor={getTypeColor}
+        />
+      )}
+    </div>
+  </div>
+</main>
       </div>
 
       {showCreateModal && (
