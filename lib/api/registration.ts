@@ -17,7 +17,10 @@ export const patientsApi = {
   // List all registrations (from registration_details view)
   getAllRegistrations: () => api.get('/api/registration?list=true'),
 
- 
+   // Get patients by phone number (returns an array)
+  getPatientsByPhone: (phone: string) => 
+    api.get(`/api/registration?phone=${encodeURIComponent(phone)}`),
+
 
     adminGetPatient: (patientId: string) => api.get(`/api/admin/patients?patientId=${patientId}`),
 

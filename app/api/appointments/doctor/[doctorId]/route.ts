@@ -23,7 +23,7 @@ export async function GET(
     
     // Get date query parameter if present
     const url = new URL(req.url);
-    const date = url.searchParams.get('date'); // e.g., "2026-03-13"
+    const date = url.searchParams.get('date'); 
 
     // Build query dynamically – use LEFT JOIN to include appointments without patients
     let sql = `

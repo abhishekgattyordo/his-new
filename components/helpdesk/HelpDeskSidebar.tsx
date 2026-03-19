@@ -1,41 +1,51 @@
-
-
-
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Calendar,
   LayoutDashboard,
+  Calendar,
   Users,
   CreditCard,
   ChevronLeft,
   ChevronRight,
   User,
-  Plus,
-  Menu,
   X,
-  Bell,
-  Search,
   Settings,
-  LogOut,
-  Home,
   Activity,
-  FileText,
-  Pill,
-  DollarSign,
+  DoorOpen,
   Clock,
+  Receipt,
 } from 'lucide-react';
 
-// ✅ Updated interface – only includes the props actually used
-interface DoctorSidebarProps {
+interface HelpDeskSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onBillingClick: () => void;
+  onRoomAvailabilityClick: () => void;
+  onDoctorSlotsClick: () => void;
 }
 
-export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
+// Define a proper type for navigation items
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  color?: string;
+  iconColor?: string;
+  href?: string;          // optional – if present, renders Link, else button
+  onClick?: () => void;   // optional – used when no href
+  badge?: string;         // optional – for notifications (currently unused)
+  activeCheck?: () => boolean; // optional – custom active detection
+}
+
+export default function HelpDeskSidebar({
+  isOpen,
+  onClose,
+  onBillingClick,
+  onRoomAvailabilityClick,
+  onDoctorSlotsClick,
+}: HelpDeskSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -43,38 +53,45 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
     setIsCollapsed(!isCollapsed);
   };
 
-  // Navigation items for doctor
-  const navItems = [
+  // Navigation items with proper typing
+  const navItems: NavItem[] = [
     {
       icon: LayoutDashboard,
       label: 'Dashboard',
-      href: '/doctor/dashboard',
+      href: '/helpdesk/dashboard',
       color: 'from-emerald-500 to-emerald-700',
       iconColor: 'text-emerald-600',
     },
     {
       icon: Calendar,
-      label: 'Schedule',
-      href: '/doctor/schedule',
-      badge: '12',
+      label: 'Appointments',
+      href: '/helpdesk/appointments',
+      color: 'from-indigo-500 to-indigo-700',
+      iconColor: 'text-indigo-600',
+    },
+    {
+      icon: DoorOpen,
+      label: 'Room Availability',
+      onClick: onRoomAvailabilityClick,
       color: 'from-blue-500 to-blue-700',
       iconColor: 'text-blue-600',
+      activeCheck: () => pathname.startsWith('/helpdesk/room-availability'),
     },
     {
-      icon: Users,
-      label: 'Patients',
-      href: '/doctor/patients',
-      badge: '5',
+      icon: Clock,
+      label: 'Doctor Slots',
+      onClick: onDoctorSlotsClick,
       color: 'from-purple-500 to-purple-700',
       iconColor: 'text-purple-600',
+      activeCheck: () => pathname.startsWith('/helpdesk/doctor-slots'),
     },
     {
-      icon: CreditCard,
+      icon: Receipt,
       label: 'Billing',
-      href: '/doctor/billing',
-      badge: '3',
+      onClick: onBillingClick,
       color: 'from-amber-500 to-amber-700',
       iconColor: 'text-amber-600',
+      activeCheck: () => pathname.startsWith('/helpdesk/billing'),
     },
   ];
 
@@ -82,11 +99,10 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
     {
       icon: User,
       label: 'New Appointment',
-      href: '/doctor/patients/new',
+      href: '/helpdesk/appointments/new',
       iconBg: 'bg-blue-50 dark:bg-blue-900/30',
       iconColor: 'text-blue-600 dark:text-blue-400',
-    }
-  
+    },
   ];
 
   const handleLinkClick = () => {
@@ -105,7 +121,7 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
         isOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0 fixed lg:sticky top-0 z-40 ${
         isCollapsed ? 'w-20' : 'w-80'
-      } flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ease-out shadow-xl lg:shadow-none h-screen`}
+      } flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ease-out shadow-xl lg:shadow-none h-screen pb-4 lg:pb-0`}
     >
       {/* Close button for mobile */}
       <button
@@ -123,7 +139,7 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
       >
         {!isCollapsed ? (
           <Link
-            href="/doctor/dashboard"
+            href="/helpdesk"
             className="flex items-center gap-4"
             onClick={handleLinkClick}
           >
@@ -133,13 +149,13 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
             <div>
               <h1 className="text-xl font-bold tracking-tight">HealthSync</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 tracking-wide">
-                Doctor Portal
+                Help Desk
               </p>
             </div>
           </Link>
         ) : (
           <Link
-            href="/doctor/dashboard"
+            href="/helpdesk"
             className="flex items-center justify-center"
             onClick={handleLinkClick}
           >
@@ -179,21 +195,13 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
             )}
             <div className="space-y-2">
               {navItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    onClick={handleLinkClick}
-                    className={`flex items-center ${
-                      isCollapsed ? 'justify-center' : 'justify-between gap-4'
-                    } px-4 py-3 rounded-xl transition-all group relative ${
-                      active
-                        ? 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/30 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                    }`}
-                    title={isCollapsed ? item.label : ''}
-                  >
+                // Determine active state
+                const active = item.href
+                  ? isActive(item.href)
+                  : item.activeCheck?.() ?? false;
+
+                const content = (
+                  <>
                     <div className={`flex items-center ${isCollapsed ? '' : 'gap-4'}`}>
                       <div
                         className={`w-8 h-8 flex items-center justify-center rounded-lg ${
@@ -222,8 +230,44 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
                     {isCollapsed && item.badge && (
                       <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                     )}
-                  </Link>
+                  </>
                 );
+
+                const activeClasses = active
+                  ? 'bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 dark:from-blue-900/30 dark:to-blue-800/20 dark:hover:from-blue-800/40 dark:hover:to-blue-700/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/30 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50';
+
+                if (item.href) {
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={handleLinkClick}
+                      className={`flex items-center ${
+                        isCollapsed ? 'justify-center' : 'justify-between gap-4'
+                      } px-4 py-3 rounded-xl transition-all group relative ${activeClasses}`}
+                      title={isCollapsed ? item.label : ''}
+                    >
+                      {content}
+                    </Link>
+                  );
+                } else {
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        item.onClick?.();
+                        handleLinkClick();
+                      }}
+                      className={`w-full flex items-center ${
+                        isCollapsed ? 'justify-center' : 'justify-between gap-4'
+                      } px-4 py-3 rounded-xl transition-all group relative text-left ${activeClasses}`}
+                      title={isCollapsed ? item.label : ''}
+                    >
+                      {content}
+                    </button>
+                  );
+                }
               })}
             </div>
           </div>
@@ -280,21 +324,21 @@ export default function DoctorSidebar({ isOpen, onClose }: DoctorSidebarProps) {
         <div className="mt-auto border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="p-4">
             <Link
-              href="/doctor/profile"
+              href="/helpdesk/profile"
               className={`flex items-center ${
                 isCollapsed ? 'justify-center' : 'gap-3'
               } p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer group`}
               onClick={handleLinkClick}
-              title={isCollapsed ? 'Dr. Sarah Bennett - Cardiologist' : ''}
+              title={isCollapsed ? 'Jane Doe - Reception Desk' : ''}
             >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold text-sm">
-                SB
+                JD
               </div>
               {!isCollapsed && (
                 <>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">Dr. Sarah Bennett</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Cardiologist</p>
+                    <p className="text-sm font-semibold truncate">Jane Doe</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Reception Desk</p>
                   </div>
                   <div className="p-1 rounded-lg bg-white dark:bg-gray-700 group-hover:bg-gray-100 dark:group-hover:bg-gray-600">
                     <Settings className="w-3 h-3 text-gray-400" />

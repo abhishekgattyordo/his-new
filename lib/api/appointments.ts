@@ -25,6 +25,11 @@ export const appointmentsApi = {
    getDoctorAppointmentsByDate: (doctorId: number, date: string) =>
     api.get(`/api/appointments/doctor/${doctorId}?date=${date}`),
 
+    getAppointmentsByDate: (date?: string) => {
+    const url = date ? `/api/appointments/today?date=${date}` : '/api/appointments/today';
+    return api.get(url);
+  },
+
   // Create a new appointment
     createAppointment: (data: any): Promise<ApiResponse> =>
     api.post('/api/appointments/patient', data),

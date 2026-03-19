@@ -1,15 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ChevronRight, 
-  Search,
-  Loader2,
-  Stethoscope,
-  Clock
-} from "lucide-react";
+import { Menu, X, Search, Loader2, Stethoscope, Clock, ChevronRight, Filter } from "lucide-react";
+import HelpDeskSidebar from "@/components/helpdesk/HelpDeskSidebar";
 
 interface Doctor {
   id: number;
@@ -23,9 +18,21 @@ interface Doctor {
 
 export default function DoctorSlotsPage() {
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Column filter state
+  const [filters, setFilters] = useState({
+    name: "",
+    department: "",
+    specialty: "",
+    status: "",
+  });
+
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const filterRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     fetchDoctors();
@@ -47,95 +54,237 @@ export default function DoctorSlotsPage() {
     }
   };
 
+  const handleFilterChange = (column: keyof typeof filters, value: string) => {
+    setFilters((prev) => ({ ...prev, [column]: value }));
+  };
+
+  const clearFilter = (column: keyof typeof filters) => {
+    setFilters((prev) => ({ ...prev, [column]: "" }));
+    setOpenFilter(null);
+  };
+
+  // Combine global search and column filters
   const filteredDoctors = doctors.filter(doctor => {
     const fullName = `${doctor.firstName} ${doctor.lastName}`.toLowerCase();
     const searchLower = searchQuery.toLowerCase();
-    return fullName.includes(searchLower) || 
-           doctor.specialty?.toLowerCase().includes(searchLower);
+
+    // Global search
+    const matchesGlobalSearch = searchQuery === "" ||
+      fullName.includes(searchLower) ||
+      doctor.specialty?.toLowerCase().includes(searchLower) ||
+      doctor.department?.toLowerCase().includes(searchLower) ||
+      doctor.status?.toLowerCase().includes(searchLower);
+
+    // Column filters
+    const matchesName = filters.name === "" ||
+      fullName.includes(filters.name.toLowerCase());
+    const matchesDepartment = filters.department === "" ||
+      doctor.department?.toLowerCase().includes(filters.department.toLowerCase());
+    const matchesSpecialty = filters.specialty === "" ||
+      doctor.specialty?.toLowerCase().includes(filters.specialty.toLowerCase());
+    const matchesStatus = filters.status === "" ||
+      doctor.status?.toLowerCase().includes(filters.status.toLowerCase());
+
+    return matchesGlobalSearch && matchesName && matchesDepartment && matchesSpecialty && matchesStatus;
   });
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Doctor Slots Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage availability slots for doctors</p>
-        </div>
-      </div>
+  const handleBillingClick = () => router.push('/helpdesk/billing');
+  const handleRoomAvailabilityClick = () => console.log('Room Availability clicked');
+  const handleDoctorSlotsClick = () => {};
 
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search doctors by name or specialty..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
+  // Filter popover component
+  const FilterPopover = ({ column, placeholder }: { column: keyof typeof filters; placeholder: string }) => {
+    const isOpen = openFilter === column;
+    const value = filters[column];
 
-        {/* Doctors Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDoctors.map((doctor) => (
-              <div
-                key={doctor.id}
-                className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                        {doctor.firstName?.[0]}{doctor.lastName?.[0]}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          Dr. {doctor.firstName} {doctor.lastName}
-                        </h3>
-                        <p className="text-sm text-gray-500">{doctor.specialty}</p>
-                      </div>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      doctor.status === 'active' 
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {doctor.status}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Stethoscope className="w-4 h-4" />
-                      <span>{doctor.department}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>Click to manage slots</span>
-                    </div>
-                  </div>
-
-                  <Link href={`/helpdesk/doctor-slots/${doctor.id}`}>
-                    <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                      Manage Slots
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </Link>
-                </div>
+    return (
+      <div className="relative inline-block" ref={(el) => { filterRefs.current[column] = el; }}>
+        <button
+          onClick={() => setOpenFilter(isOpen ? null : column)}
+          className={`ml-1 p-1 rounded-md hover:bg-gray-100 transition-colors ${value ? "text-blue-600" : "text-gray-400"}`}
+          aria-label={`Filter by ${column}`}
+        >
+          <Filter className="h-3.5 w-3.5" />
+        </button>
+        {isOpen && (
+          <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-3">
+            <div className="space-y-2">
+              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Filter by {column}
+              </h4>
+              <input
+                type="text"
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => handleFilterChange(column, e.target.value)}
+                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => clearFilter(column)}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setOpenFilter(null)}
+                  className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                >
+                  Apply
+                </button>
               </div>
-            ))}
+            </div>
           </div>
         )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <HelpDeskSidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        onBillingClick={handleBillingClick}
+        onRoomAvailabilityClick={handleRoomAvailabilityClick}
+        onDoctorSlotsClick={handleDoctorSlotsClick}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden"> {/* Add overflow-hidden to contain children */}
+        {/* Mobile header */}
+        <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
+            <span className="material-icons">menu</span>
+          </button>
+          <h1 className="text-xl font-bold text-gray-800 truncate">Doctor Slots</h1>
+        </header>
+
+        {/* Mobile toggle button */}
+        <button
+          className="lg:hidden fixed bottom-20 right-6 z-50 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
+        {/* Main content area with vertical scroll only */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
+          <div className="space-y-6">
+            {/* Page Header */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Doctor Slots Management</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage availability slots for doctors</p>
+            </div>
+
+            {/* Global Search */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search doctors by name, specialty, department, status..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Doctors Table */}
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px] lg:min-w-full border-collapse">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
+                          <div className="flex items-center gap-1">
+                            DOCTOR
+                            <FilterPopover column="name" placeholder="Filter by name..." />
+                          </div>
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
+                          <div className="flex items-center gap-1">
+                            DEPARTMENT
+                            <FilterPopover column="department" placeholder="Filter by department..." />
+                          </div>
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
+                          <div className="flex items-center gap-1">
+                            SPECIALTY
+                            <FilterPopover column="specialty" placeholder="Filter by specialty..." />
+                          </div>
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
+                          <div className="flex items-center gap-1">
+                            STATUS
+                            <FilterPopover column="status" placeholder="Filter by status..." />
+                          </div>
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
+                          ACTIONS
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredDoctors.map((doctor) => (
+                        <tr key={doctor.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-4 border border-gray-200">
+                            <div className="flex items-center gap-3 whitespace-nowrap">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs">
+                                {doctor.firstName?.[0]}{doctor.lastName?.[0]}
+                              </div>
+                              <span className="font-medium text-gray-900">
+                                Dr. {doctor.firstName} {doctor.lastName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-4 border border-gray-200">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
+                              <Stethoscope className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm text-gray-600">{doctor.department}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 border border-gray-200">
+                            <span className="text-sm text-gray-600 whitespace-nowrap">{doctor.specialty}</span>
+                          </td>
+                          <td className="p-4 border border-gray-200">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                              doctor.status === 'active' 
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {doctor.status}
+                            </span>
+                          </td>
+                          <td className="p-4 border border-gray-200">
+                            <Link href={`/helpdesk/doctor-slots/${doctor.id}`}>
+                              <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-1 whitespace-nowrap">
+                                Manage Slots
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {filteredDoctors.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No doctors found</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

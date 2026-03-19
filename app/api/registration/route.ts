@@ -432,10 +432,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const patientId = searchParams.get('patientId');
+    const phone = searchParams.get('phone');
     const listAll = searchParams.get('list') === 'true';
 
+    // 1. List all patients
     if (listAll) {
-      // Return all registrations with full details using jsonb_agg
       const result = await query(`
         SELECT jsonb_agg(
           jsonb_build_object(
@@ -488,14 +489,139 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // 2. Search by phone number
+    if (phone) {
+      const trimmedPhone = phone.trim();
+      // Extract only digits from the input
+      const digitsOnly = trimmedPhone.replace(/[^0-9]/g, '');
+
+      if (digitsOnly.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "Invalid phone number" },
+          { status: 400 }
+        );
+      }
+
+      console.log("Searching for phone (exact):", trimmedPhone);
+      console.log("Searching for phone (digits):", digitsOnly);
+
+      // First try exact match (fast)
+      let result = await query(`
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'patient_id', p.patient_id::text,
+            'full_name_en', p.full_name_en,
+            'full_name_hi', p.full_name_hi,
+            'dob', p.dob,
+            'gender', p.gender,
+            'address', p.address,
+            'city', p.city,
+            'state', p.state,
+            'country', p.country,
+            'pincode', p.pincode,
+            'phone', p.phone,
+            'email', p.email,
+            'blood_group', p.blood_group,
+            'registration_step', p.registration_step,
+            'created_at', p.created_at,
+            'updated_at', p.updated_at,
+            'insurance_provider', i.insurance_provider,
+            'policy_number', i.policy_number,
+            'valid_until', i.valid_until,
+            'group_id', i.group_id,
+            'registration_id', r.registration_id,
+            'registration_status', r.status,
+            'completed_at', r.completed_at,
+            'medical_history', COALESCE((
+              SELECT jsonb_agg(
+                jsonb_build_object(
+                  'allergy', mh.allergy,
+                  'chronic_condition', mh.chronic_condition,
+                  'medications', mh.medications,
+                  'recorded_at', mh.created_at
+                )
+              )
+              FROM medical_history mh
+              WHERE mh.patient_id = p.patient_id
+            ), '[]'::jsonb)
+          )
+        ) as data
+        FROM patients p
+        LEFT JOIN insurance_details i ON p.patient_id = i.patient_id
+        LEFT JOIN registrations r ON p.patient_id = r.patient_id
+        WHERE p.phone = $1
+      `, [trimmedPhone]);
+
+      // If no exact match, try matching by digits only
+      if (!result.rows.length || !result.rows[0].data) {
+        result = await query(`
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'patient_id', p.patient_id::text,
+              'full_name_en', p.full_name_en,
+              'full_name_hi', p.full_name_hi,
+              'dob', p.dob,
+              'gender', p.gender,
+              'address', p.address,
+              'city', p.city,
+              'state', p.state,
+              'country', p.country,
+              'pincode', p.pincode,
+              'phone', p.phone,
+              'email', p.email,
+              'blood_group', p.blood_group,
+              'registration_step', p.registration_step,
+              'created_at', p.created_at,
+              'updated_at', p.updated_at,
+              'insurance_provider', i.insurance_provider,
+              'policy_number', i.policy_number,
+              'valid_until', i.valid_until,
+              'group_id', i.group_id,
+              'registration_id', r.registration_id,
+              'registration_status', r.status,
+              'completed_at', r.completed_at,
+              'medical_history', COALESCE((
+                SELECT jsonb_agg(
+                  jsonb_build_object(
+                    'allergy', mh.allergy,
+                    'chronic_condition', mh.chronic_condition,
+                    'medications', mh.medications,
+                    'recorded_at', mh.created_at
+                  )
+                )
+                FROM medical_history mh
+                WHERE mh.patient_id = p.patient_id
+              ), '[]'::jsonb)
+            )
+          ) as data
+          FROM patients p
+          LEFT JOIN insurance_details i ON p.patient_id = i.patient_id
+          LEFT JOIN registrations r ON p.patient_id = r.patient_id
+          WHERE regexp_replace(p.phone, '[^0-9]', '', 'g') = $1
+        `, [digitsOnly]);
+      }
+
+      if (result.rows.length === 0 || !result.rows[0].data) {
+        return NextResponse.json(
+          { success: false, message: `No patients found with phone: ${trimmedPhone}` },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: result.rows[0].data,
+      });
+    }
+
+    // 3. Get by patient ID (existing logic)
     if (!patientId) {
       return NextResponse.json(
-        { success: false, message: "patientId is required." },
+        { success: false, message: "patientId or phone is required." },
         { status: 400 }
       );
     }
 
-    // Validate patientId format (must be digits)
     if (!/^\d+$/.test(patientId)) {
       return NextResponse.json(
         {
@@ -506,7 +632,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // ✅ Pass patientId as a string – no parseInt to avoid precision loss
     const queryStr = `
       SELECT 
         jsonb_build_object(
@@ -554,7 +679,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN registrations r ON p.patient_id = r.patient_id
       WHERE p.patient_id = $1`;
 
-    const registrationResult = await query(queryStr, [patientId]); // <-- pass as string
+    const registrationResult = await query(queryStr, [patientId]);
 
     if (registrationResult.rows.length === 0) {
       return NextResponse.json(
