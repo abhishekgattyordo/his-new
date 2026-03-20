@@ -23,10 +23,10 @@ export default function PatientsPage() {
     router.push(`/doctor/ehr/${patientId}/current-visit`);
   };
 
-  const handleViewEHRClick = (e: React.MouseEvent, patientId: string) => {
-    e.stopPropagation();
-    router.push(`/doctor/ehr/${patientId}/current-visit`);
-  };
+  // const handleViewEHRClick = (e: React.MouseEvent, patientId: string) => {
+  //   e.stopPropagation();
+  //   router.push(`/doctor/ehr/${patientId}/current-visit`);
+  // };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -72,7 +72,7 @@ export default function PatientsPage() {
               {filteredPatients.map((patient) => (
                 <tr
                   key={patient.id}
-                  onClick={() => handleRowClick(patient.id)}
+                  // onClick={() => handleRowClick(patient.id)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className="p-3 sm:p-4 border border-gray-200">
@@ -107,10 +107,10 @@ export default function PatientsPage() {
                   </td>
                   <td className="p-3 sm:p-4 border border-gray-200">
                     <button
-                      onClick={(e) => handleViewEHRClick(e, patient.id)}
+                      // onClick={(e) => handleViewEHRClick(e, patient.id)}
                       className="text-blue-600 text-sm hover:text-blue-800 hover:underline whitespace-nowrap"
                     >
-                      View EHR
+                   
                     </button>
                   </td>
                 </tr>

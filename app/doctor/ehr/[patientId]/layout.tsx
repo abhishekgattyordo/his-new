@@ -892,7 +892,7 @@ const handleAddMedication = async (medicationsArray: NewMedicationData[]) => {
 
   } catch (error) {
     console.error("Error saving prescriptions:", error);
-    toast.error("Failed to save prescriptions");
+
     // Rollback optimistic update
     setMedications(medications);
   }

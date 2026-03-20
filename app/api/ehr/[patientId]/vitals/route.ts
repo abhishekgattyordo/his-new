@@ -227,3 +227,55 @@ export async function PUT(
     client.release();
   }
 }
+
+
+// DELETE /api/ehr/[patientId]/vitals?vitalId=xxx
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ patientId: string }> }
+) {
+  const client = await pool.connect();
+  try {
+    const { patientId } = await params;
+    const url = new URL(req.url);
+    const vitalId = url.searchParams.get('vitalId');
+
+    if (!vitalId) {
+      return NextResponse.json(
+        { success: false, message: 'vitalId query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify that this vital belongs to the patient
+    const verify = await client.query(
+      `SELECT v.id FROM vitals v
+       JOIN appointments a ON v.appointment_id = a.id
+       WHERE v.id = $1 AND a.patient_id = $2`,
+      [vitalId, patientId]
+    );
+
+    if (verify.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Vital not found or does not belong to patient' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the vital record
+    await client.query(`DELETE FROM vitals WHERE id = $1`, [vitalId]);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Vital record deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting vitals:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  } finally {
+    client.release();
+  }
+}

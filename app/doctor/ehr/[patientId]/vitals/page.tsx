@@ -1,6 +1,7 @@
 
 
 
+
 // "use client";
 
 // import { useEffect, useState } from "react";
@@ -55,97 +56,95 @@
 
 //   // Fetch vitals based on targetDate
 //   useEffect(() => {
-//   const fetchVitals = async () => {
-//     setLoading(true);
-//     setError(null);
+//     const fetchVitals = async () => {
+//       setLoading(true);
+//       setError(null);
 
-//     try {
-//       const response = await currentVisitApi.getVitalsByDate(patientId, targetDate);
-//       console.log("Vitals response:", response);
+//       try {
+//         const response = await currentVisitApi.getVitalsByDate(patientId, targetDate);
+//         console.log("Vitals response:", response);
 
-//       // Fix: directly use response if it's already an array
-//       if (Array.isArray(response)) {
-//         setVitals(response); // ✅ set the state properly
-//         console.log("Vitals state set:", response);
-//       } else if (response?.data && Array.isArray(response.data)) {
-//         setVitals(response.data);
-//         console.log("Vitals state set from response.data:", response.data);
-//       } else {
-//         setVitals([]);
-//         console.warn("Unexpected API response shape:", response);
-//       }
-//     } catch (err) {
-//       console.error("Error fetching vitals:", err);
-//       setError("Failed to load vitals");
-//       setVitals([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   fetchVitals();
-// }, [patientId, targetDate]);
-
-//   const handleSaveVitals = async (vitalsData: NewVitalsForm) => {
-//     try {
-//       let response;
-
-//       if (editingVital) {
-//         // Update existing vital
-//         const updatePayload = {
-//           bp: vitalsData.bp,
-//           hr: Number(vitalsData.hr),
-//           temp: Number(vitalsData.temp),
-//           weight: Number(vitalsData.weight),
-//           rr: Number(vitalsData.rr),
-//           spo2: Number(vitalsData.spo2),
-//           recordedBy: "Dr. Sarah Jenkins",
-//         };
-//         response = await currentVisitApi.updateVital(
-//           patientId,
-//           editingVital.id.toString(),
-//           updatePayload
-//         );
-//       } else {
-//         // Add new vital – use targetDate (the date being viewed)
-//         const payload = {
-//           date: targetDate, // <-- key change: use viewed date, not always today
-//           ...vitalsData,
-//           recordedBy: "Dr. Sarah Jenkins",
-//           _debug: Date.now(),
-//         };
-//         response = await currentVisitApi.saveVitals(patientId, payload);
-//       }
-
-//       // Unwrap response (API client returns response.data)
-//       const result = response;
-
-//       if (result && (result.success || result.appointmentId)) {
-//         toast.success(
-//           result.message ||
-//             (editingVital ? "Vitals updated successfully" : "Vitals saved successfully")
-//         );
-
-//         // Refresh vitals for the same targetDate
-//         const fetchResponse = await currentVisitApi.getVitalsByDate(patientId, targetDate);
-//         if (fetchResponse?.success && Array.isArray(fetchResponse.data)) {
-//           setVitals(fetchResponse.data);
+//         if (Array.isArray(response)) {
+//           setVitals(response);
+//           console.log("Vitals state set:", response);
+//         } else if (response?.data && Array.isArray(response.data)) {
+//           setVitals(response.data);
+//           console.log("Vitals state set from response.data:", response.data);
 //         } else {
 //           setVitals([]);
+//           console.warn("Unexpected API response shape:", response);
 //         }
-//       } else {
-//         toast.error(
-//           result?.message || `Failed to ${editingVital ? "update" : "save"} vitals`
-//         );
+//       } catch (err) {
+//         console.error("Error fetching vitals:", err);
+//         setError("Failed to load vitals");
+//         setVitals([]);
+//       } finally {
+//         setLoading(false);
 //       }
+//     };
 
-//       setShowAddVitalsModal(false);
-//       setEditingVital(null);
-//       setNewVitals({ bp: "", hr: "", temp: "", weight: "", rr: "", spo2: "" });
-//     } catch (error) {
-//       toast.error(`Error ${editingVital ? "updating" : "saving"} vitals`);
+//     fetchVitals();
+//   }, [patientId, targetDate]);
+
+//   const handleSaveVitals = async (vitalsData: NewVitalsForm) => {
+//   try {
+//     let response;
+
+//     // Get the logged‑in user (doctor) from localStorage
+//     const user = JSON.parse(localStorage.getItem("user") || "null");
+//     const doctorName = user?.full_name_en || "Doctor";
+
+//     if (editingVital) {
+//       const updatePayload = {
+//         bp: vitalsData.bp,
+//         hr: Number(vitalsData.hr),
+//         temp: Number(vitalsData.temp),
+//         weight: Number(vitalsData.weight),
+//         rr: Number(vitalsData.rr),
+//         spo2: Number(vitalsData.spo2),
+//         recordedBy: doctorName,
+//       };
+//       response = await currentVisitApi.updateVital(
+//         patientId,
+//         editingVital.id.toString(),
+//         updatePayload
+//       );
+//     } else {
+//       const payload = {
+//         date: targetDate,
+//         ...vitalsData,
+//         recordedBy: doctorName,
+//         _debug: Date.now(),
+//       };
+//       response = await currentVisitApi.saveVitals(patientId, payload);
 //     }
-//   };
+
+//     const result = response.data;
+
+//     if (result && (result.success || result.appointmentId)) {
+//       // Refresh vitals
+//       const fetchResponse = await currentVisitApi.getVitalsByDate(patientId, targetDate);
+//       if (Array.isArray(fetchResponse)) {
+//         setVitals(fetchResponse);
+//       } else if (fetchResponse?.data && Array.isArray(fetchResponse.data)) {
+//         setVitals(fetchResponse.data);
+//       } else {
+//         setVitals([]);
+//       }
+//     } else {
+//       console.error(
+//         `Failed to ${editingVital ? "update" : "save"} vitals`,
+//         result?.message
+//       );
+//     }
+
+//     setShowAddVitalsModal(false);
+//     setEditingVital(null);
+//     setNewVitals({ bp: "", hr: "", temp: "", weight: "", rr: "", spo2: "" });
+//   } catch (error) {
+//     console.error(`Error ${editingVital ? "updating" : "saving"} vitals:`, error);
+//   }
+// };
 
 //   const getVitalStatus = (
 //     value: number,
@@ -463,12 +462,18 @@ export default function VitalsPage() {
   const [editingVital, setEditingVital] = useState<Vital | null>(null);
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const targetDate = dateParam || todayStr; // Use URL date if provided, otherwise today
+  const targetDate = dateParam || todayStr;
 
-  // Debug: log vitals state
-  useEffect(() => {
-    console.log("Vitals state updated:", vitals);
-  }, [vitals]);
+  // Helper to check if a vital was recorded today (local date)
+  const isTodayVital = (vital: Vital): boolean => {
+    const vitalDate = new Date(vital.recordedAt);
+    const today = new Date();
+    return (
+      vitalDate.getFullYear() === today.getFullYear() &&
+      vitalDate.getMonth() === today.getMonth() &&
+      vitalDate.getDate() === today.getDate()
+    );
+  };
 
   // Fetch vitals based on targetDate
   useEffect(() => {
@@ -482,10 +487,8 @@ export default function VitalsPage() {
 
         if (Array.isArray(response)) {
           setVitals(response);
-          console.log("Vitals state set:", response);
         } else if (response?.data && Array.isArray(response.data)) {
           setVitals(response.data);
-          console.log("Vitals state set from response.data:", response.data);
         } else {
           setVitals([]);
           console.warn("Unexpected API response shape:", response);
@@ -506,8 +509,11 @@ export default function VitalsPage() {
     try {
       let response;
 
+      // Get the logged‑in user (doctor) from localStorage
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const doctorName = user?.full_name_en || "Doctor";
+
       if (editingVital) {
-        // Update existing vital
         const updatePayload = {
           bp: vitalsData.bp,
           hr: Number(vitalsData.hr),
@@ -515,7 +521,7 @@ export default function VitalsPage() {
           weight: Number(vitalsData.weight),
           rr: Number(vitalsData.rr),
           spo2: Number(vitalsData.spo2),
-          recordedBy: "Dr. Sarah Jenkins",
+          recordedBy: doctorName,
         };
         response = await currentVisitApi.updateVital(
           patientId,
@@ -523,25 +529,19 @@ export default function VitalsPage() {
           updatePayload
         );
       } else {
-        // Add new vital – use targetDate (the date being viewed)
         const payload = {
           date: targetDate,
           ...vitalsData,
-          recordedBy: "Dr. Sarah Jenkins",
+          recordedBy: doctorName,
           _debug: Date.now(),
         };
         response = await currentVisitApi.saveVitals(patientId, payload);
       }
 
-    const result = response.data;
+      const result = response.data;
 
       if (result && (result.success || result.appointmentId)) {
-        toast.success(
-          result.message ||
-            (editingVital ? "Vitals updated successfully" : "Vitals saved successfully")
-        );
-
-        // Refresh vitals for the same targetDate – use same logic as fetch
+        // Refresh vitals
         const fetchResponse = await currentVisitApi.getVitalsByDate(patientId, targetDate);
         if (Array.isArray(fetchResponse)) {
           setVitals(fetchResponse);
@@ -551,8 +551,9 @@ export default function VitalsPage() {
           setVitals([]);
         }
       } else {
-        toast.error(
-          result?.message || `Failed to ${editingVital ? "update" : "save"} vitals`
+        console.error(
+          `Failed to ${editingVital ? "update" : "save"} vitals`,
+          result?.message
         );
       }
 
@@ -560,7 +561,29 @@ export default function VitalsPage() {
       setEditingVital(null);
       setNewVitals({ bp: "", hr: "", temp: "", weight: "", rr: "", spo2: "" });
     } catch (error) {
-      toast.error(`Error ${editingVital ? "updating" : "saving"} vitals`);
+      console.error(`Error ${editingVital ? "updating" : "saving"} vitals:`, error);
+    }
+  };
+
+  const handleDeleteVital = async (vitalId: number) => {
+    if (!confirm("Are you sure you want to delete this vital record?")) return;
+
+    try {
+      await currentVisitApi.deleteVital(patientId, vitalId.toString());
+      toast.success("Vital record deleted successfully");
+
+      // Refresh the list after deletion
+      const fetchResponse = await currentVisitApi.getVitalsByDate(patientId, targetDate);
+      if (Array.isArray(fetchResponse)) {
+        setVitals(fetchResponse);
+      } else if (fetchResponse?.data && Array.isArray(fetchResponse.data)) {
+        setVitals(fetchResponse.data);
+      } else {
+        setVitals([]);
+      }
+    } catch (error) {
+      console.error("Error deleting vital:", error);
+      toast.error("Failed to delete vital record");
     }
   };
 
@@ -646,166 +669,181 @@ export default function VitalsPage() {
           </p>
         ) : (
           <div className="space-y-4">
-            {vitals.map((vital) => (
-              <div
-                key={vital.id}
-                className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition"
-              >
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#137fec]">
-                        calendar_month
-                      </span>
+            {vitals.map((vital) => {
+              const isToday = isTodayVital(vital);
+              return (
+                <div
+                  key={vital.id}
+                  className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition"
+                >
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[#137fec]">
+                          calendar_month
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {new Date(vital.recordedAt).toLocaleDateString()} at{" "}
+                          {new Date(vital.recordedAt).toLocaleTimeString()}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Recorded by {vital.recordedBy}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        {new Date(vital.recordedAt).toLocaleDateString()} at{" "}
-                        {new Date(vital.recordedAt).toLocaleTimeString()}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Recorded by {vital.recordedBy}
-                      </p>
-                    </div>
+                    {isToday && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingVital(vital);
+                            setNewVitals({
+                              bp: vital.bp || "",
+                              hr: vital.hr?.toString() || "",
+                              temp: vital.temp?.toString() || "",
+                              weight: vital.weight?.toString() || "",
+                              rr: vital.rr?.toString() || "",
+                              spo2: vital.spo2?.toString() || "",
+                            });
+                            setShowAddVitalsModal(true);
+                          }}
+                          className="p-2 hover:bg-slate-100 rounded-lg transition"
+                          title="Edit"
+                        >
+                          <span className="material-symbols-outlined text-slate-500">
+                            edit
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteVital(vital.id)}
+                          className="p-2 hover:bg-red-50 rounded-lg transition"
+                          title="Delete"
+                        >
+                          <span className="material-symbols-outlined text-red-500">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingVital(vital);
-                        setNewVitals({
-                          bp: vital.bp || "",
-                          hr: vital.hr?.toString() || "",
-                          temp: vital.temp?.toString() || "",
-                          weight: vital.weight?.toString() || "",
-                          rr: vital.rr?.toString() || "",
-                          spo2: vital.spo2?.toString() || "",
-                        });
-                        setShowAddVitalsModal(true);
-                      }}
-                      className="p-2 hover:bg-slate-100 rounded-lg transition"
-                    >
-                      <span className="material-symbols-outlined text-slate-500">
-                        edit
-                      </span>
-                    </button>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
-                      <span className="material-symbols-outlined text-[14px] text-red-400">
-                        monitor_heart
-                      </span>
-                      BP
-                    </p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {vital.bp}
-                    </p>
-                    <p className="text-[10px] text-slate-400">mmHg</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
-                      <span className="material-symbols-outlined text-[14px] text-red-400">
-                        ecg_heart
-                      </span>
-                      HR
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg font-bold text-slate-900">
-                        {vital.hr}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                        <span className="material-symbols-outlined text-[14px] text-red-400">
+                          monitor_heart
+                        </span>
+                        BP
                       </p>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                          getVitalStatus(vital.hr, "hr") === "normal"
-                            ? "bg-green-50 text-green-600"
-                            : "bg-red-50 text-red-600"
-                        }`}
-                      >
-                        {getVitalStatus(vital.hr, "hr") === "normal"
-                          ? "Normal"
-                          : "High"}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400">bpm</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
-                      <span className="material-symbols-outlined text-[14px] text-amber-400">
-                        thermometer
-                      </span>
-                      Temp
-                    </p>
-                    <div className="flex items-center gap-2">
                       <p className="text-lg font-bold text-slate-900">
-                        {vital.temp}
+                        {vital.bp}
                       </p>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                          getVitalStatus(vital.temp, "temp") === "normal"
-                            ? "bg-green-50 text-green-600"
-                            : "bg-red-50 text-red-600"
-                        }`}
-                      >
-                        {getVitalStatus(vital.temp, "temp") === "normal"
-                          ? "Normal"
-                          : "Fever"}
-                      </span>
+                      <p className="text-[10px] text-slate-400">mmHg</p>
                     </div>
-                    <p className="text-[10px] text-slate-400">°C</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
-                      <span className="material-symbols-outlined text-[14px] text-blue-400">
-                        scale
-                      </span>
-                      Weight
-                    </p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {vital.weight}
-                    </p>
-                    <p className="text-[10px] text-slate-400">kg</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
-                      <span className="material-symbols-outlined text-[14px] text-green-400">
-                        respiratory_rate
-                      </span>
-                      RR
-                    </p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {vital.rr}
-                    </p>
-                    <p className="text-[10px] text-slate-400">breaths/min</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
-                      <span className="material-symbols-outlined text-[14px] text-purple-400">
-                        oxygen_saturation
-                      </span>
-                      SpO2
-                    </p>
-                    <div className="flex items-center gap-2">
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                        <span className="material-symbols-outlined text-[14px] text-red-400">
+                          ecg_heart
+                        </span>
+                        HR
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-slate-900">
+                          {vital.hr}
+                        </p>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            getVitalStatus(vital.hr, "hr") === "normal"
+                              ? "bg-green-50 text-green-600"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {getVitalStatus(vital.hr, "hr") === "normal"
+                            ? "Normal"
+                            : "High"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">bpm</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                        <span className="material-symbols-outlined text-[14px] text-amber-400">
+                          thermometer
+                        </span>
+                        Temp
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-slate-900">
+                          {vital.temp}
+                        </p>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            getVitalStatus(vital.temp, "temp") === "normal"
+                              ? "bg-green-50 text-green-600"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {getVitalStatus(vital.temp, "temp") === "normal"
+                            ? "Normal"
+                            : "Fever"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">°C</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                        <span className="material-symbols-outlined text-[14px] text-blue-400">
+                          scale
+                        </span>
+                        Weight
+                      </p>
                       <p className="text-lg font-bold text-slate-900">
-                        {vital.spo2}
+                        {vital.weight}
                       </p>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                          getVitalStatus(vital.spo2, "spo2") === "normal"
-                            ? "bg-green-50 text-green-600"
-                            : "bg-red-50 text-red-600"
-                        }`}
-                      >
-                        {getVitalStatus(vital.spo2, "spo2") === "normal"
-                          ? "Normal"
-                          : "Low"}
-                      </span>
+                      <p className="text-[10px] text-slate-400">kg</p>
                     </div>
-                    <p className="text-[10px] text-slate-400">%</p>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                        <span className="material-symbols-outlined text-[14px] text-green-400">
+                          respiratory_rate
+                        </span>
+                        RR
+                      </p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {vital.rr}
+                      </p>
+                      <p className="text-[10px] text-slate-400">breaths/min</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                        <span className="material-symbols-outlined text-[14px] text-purple-400">
+                          oxygen_saturation
+                        </span>
+                        SpO2
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-slate-900">
+                          {vital.spo2}
+                        </p>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            getVitalStatus(vital.spo2, "spo2") === "normal"
+                              ? "bg-green-50 text-green-600"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {getVitalStatus(vital.spo2, "spo2") === "normal"
+                            ? "Normal"
+                            : "Low"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">%</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

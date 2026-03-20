@@ -25,55 +25,63 @@ export default function CurrentVisitPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        let response;
+ useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      let response;
 
-        if (date) {
-          response = await currentVisitApi.getCurrentVisitByDate(patientId, date);
-        } else if (appointmentId) {
-          response = await currentVisitApi.getCurrentVisit(patientId, appointmentId);
-        } else {
-          response = await currentVisitApi.getCurrentVisit(patientId);
-        }
-
-        const json = response.data;
-
-        if (json) {
-          const data = json;
-
-          const formattedDate = data.follow_up_date
-            ? data.follow_up_date.split("T")[0]
-            : "";
-
-          setFormData({
-            diagnosis: data.diagnosis || "",
-            icd10_code: data.icd10_code || "",
-            clinical_notes: data.clinical_notes || "",
-            follow_up_date: formattedDate,
-            patient_instructions: data.patient_instructions || "",
-          });
-        } else {
-          setFormData({
-            diagnosis: "",
-            icd10_code: "",
-            clinical_notes: "",
-            follow_up_date: "",
-            patient_instructions: "",
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching current visit:", error);
-        toast.error("Failed to load current visit data");
-      } finally {
-        setLoading(false);
+      if (date) {
+        response = await currentVisitApi.getCurrentVisitByDate(patientId, date);
+      } else if (appointmentId) {
+        response = await currentVisitApi.getCurrentVisit(patientId, appointmentId);
+      } else {
+        response = await currentVisitApi.getCurrentVisit(patientId);
       }
-    };
 
-    fetchData();
-  }, [patientId, appointmentId, date]);
+      console.log("API response", response);
+
+      // Safely extract visit data – handles both raw object and { success, data }
+      const visitData =
+        response && typeof response === 'object' && 'success' in response
+          ? response.data
+          : response;
+
+      if (visitData && typeof visitData === 'object' && Object.keys(visitData).length > 0) {
+        const formattedDate = visitData.follow_up_date
+          ? visitData.follow_up_date.split("T")[0]
+          : "";
+
+        setFormData({
+          diagnosis: visitData.diagnosis || "",
+          icd10_code: visitData.icd10_code || "",
+          clinical_notes: visitData.clinical_notes || "",
+          follow_up_date: formattedDate,
+          patient_instructions: visitData.patient_instructions || "",
+        });
+      } else {
+        // No data – reset form (not an error, just empty state)
+        setFormData({
+          diagnosis: "",
+          icd10_code: "",
+          clinical_notes: "",
+          follow_up_date: "",
+          patient_instructions: "",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching current visit:", error);
+      // Only show toast for actual errors, not for 404 (no data)
+      if (error?.response?.status !== 404) {
+        toast.error("Failed to load current visit data");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [patientId, appointmentId, date]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
