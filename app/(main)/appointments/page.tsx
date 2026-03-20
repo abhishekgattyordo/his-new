@@ -205,8 +205,8 @@ export default function AppointmentBookingPage() {
               profilePhoto: profilePhoto,
               imageUrl: profilePhoto,
               nextAvailableSlots: [{ time: "10:00 AM" }],
-              consultationFee: 1000,
-              price: 1000,
+              consultationFee: 500,
+              price: 500,
               nextAvailable: "Today",
             };
           });

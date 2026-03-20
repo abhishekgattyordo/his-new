@@ -390,11 +390,12 @@
 
       try {
         const response = await doctorsApi.deleteDoctor(id);
-        if (response.data?.success) {
+        console.log("response",response)
+        if (response.success) {
           toast.success("Doctor deleted successfully");
           fetchDoctors(); // refresh list
         } else {
-          toast.error(response.data?.message || "Failed to delete doctor");
+         toast.error(response.message || "Failed to delete doctor");
         }
       } catch (error) {
         console.error("Delete error:", error);

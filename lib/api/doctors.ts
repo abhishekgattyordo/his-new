@@ -7,13 +7,42 @@ interface SlotsResponse {
   doctor_id: string;
   slots: string[];
 }
+interface UpdateDoctorResponse {
+  success: boolean;
+  message: string;
+  data: any;
+  errors?: any;
+}
+interface GetDoctorResponse {
+  success: boolean;
+  message: string;
+  data: any; // you can later replace with Doctor type
+}
+interface DeleteDoctorResponse {
+  success: boolean;
+  message: string;
+}
+
 
 export const doctorsApi = {
   getDoctors: (params?: any) => api.get('/api/doctors', { params }),
-  getDoctor: (id: number) => api.get(`/api/doctors/${id}`),
+getDoctor: async (id: number): Promise<GetDoctorResponse> => {
+  const res = await api.get(`/api/doctors/${id}`);
+  return res as unknown as GetDoctorResponse; // ✅ same pattern
+},
+
   createDoctor: (data: FormData) => api.post('/api/doctors', data),
-  updateDoctor: (id: number, data: any) => api.put(`/api/doctors/${id}`, data),
-  deleteDoctor: (id: number) => api.delete(`/api/doctors/${id}`),
+updateDoctor: async (id: number, data: any): Promise<UpdateDoctorResponse> => {
+  const res = await api.put(
+    `/api/doctors/${id}`,
+    data
+  );
+  return res as unknown as UpdateDoctorResponse; // ✅ same as delete
+},
+ deleteDoctor: async (id: number): Promise<DeleteDoctorResponse> => {
+  const res = await api.delete(`/api/doctors/${id}`);
+  return res as unknown as DeleteDoctorResponse; // ✅ same pattern
+},
     getSpecialties: () => api.get('/api/doctors/specialties'),
   getSlots: (doctorId: number, date: string): Promise<SlotsResponse> =>
     api.get(`/api/doctors-appoitment/${doctorId}/slots?date=${date}`),

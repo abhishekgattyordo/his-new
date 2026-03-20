@@ -767,11 +767,7 @@ const past = appointments.filter(apt => {
     const fetchData = async () => {
       try {
         const user = JSON.parse(localStorage.getItem("user") || "null");
-        if (!user || !user.id) {
-          toast.error("Please login first");
-          router.push("/login");
-          return;
-        }
+        
         setUserName(user.full_name_en || user.name || "Patient");
         const patientId = user.patient_id || String(user.id);
         await fetchAppointments(patientId, selectedDate || undefined);

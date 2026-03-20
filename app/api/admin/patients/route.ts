@@ -455,8 +455,7 @@ export async function PUT(request: Request) {
   }
 }
 
-// ==================== DELETE ====================
-// ==================== DELETE ====================
+
 export async function DELETE(request: Request) {
   const client = await pool.connect();
   try {

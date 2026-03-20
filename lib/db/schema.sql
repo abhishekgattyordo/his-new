@@ -693,3 +693,44 @@ CREATE TABLE prescriptions (
   recorded_by VARCHAR(255),
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+
+-- temporary helpdesk and admin------------
+
+-- Roles table
+CREATE TABLE roles (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) UNIQUE NOT NULL,   -- 'admin', 'helpdesk'
+  description TEXT
+);
+
+-- Users table
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,  -- store bcrypt hash
+  full_name VARCHAR(100),
+  role_id INT NOT NULL REFERENCES roles(id),
+  is_active BOOLEAN DEFAULT true,
+  last_login TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert initial roles
+INSERT INTO roles (name, description) VALUES
+  ('admin', 'System administrator with full access'),
+  ('helpdesk', 'Helpdesk staff');
+
+-- Insert a default admin user
+-- Password: 'admin123' (replace with actual bcrypt hash)
+-- To generate a bcrypt hash, use: bcrypt.hashSync('admin123', 10)
+INSERT INTO users (username, email, password_hash, full_name, role_id) VALUES
+  ('admin', 'admin@hospital.com', '$2a$10$your_generated_hash_here', 'System Admin', 1);
+
+-- Insert a default helpdesk user
+-- Password: 'helpdesk123' (replace with actual bcrypt hash)
+-- To generate a bcrypt hash, use: bcrypt.hashSync('helpdesk123', 10)
+INSERT INTO users (username, email, password_hash, full_name, role_id) VALUES
+  ('helpdesk', 'helpdesk@hospital.com', '$2a$10$your_generated_hash_here', 'Helpdesk Staff', 2);

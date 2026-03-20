@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Calendar,
@@ -17,7 +17,7 @@ import {
   DoorOpen,
   Clock,
   Receipt,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface HelpDeskSidebarProps {
   isOpen: boolean;
@@ -33,9 +33,9 @@ interface NavItem {
   label: string;
   color?: string;
   iconColor?: string;
-  href?: string;          // optional – if present, renders Link, else button
-  onClick?: () => void;   // optional – used when no href
-  badge?: string;         // optional – for notifications (currently unused)
+  href?: string; // optional – if present, renders Link, else button
+  onClick?: () => void; // optional – used when no href
+  badge?: string; // optional – for notifications (currently unused)
   activeCheck?: () => boolean; // optional – custom active detection
 }
 
@@ -57,51 +57,51 @@ export default function HelpDeskSidebar({
   const navItems: NavItem[] = [
     {
       icon: LayoutDashboard,
-      label: 'Dashboard',
-      href: '/helpdesk/dashboard',
-      color: 'from-emerald-500 to-emerald-700',
-      iconColor: 'text-emerald-600',
+      label: "Dashboard",
+      href: "/helpdesk/dashboard",
+      color: "from-emerald-500 to-emerald-700",
+      iconColor: "text-emerald-600",
     },
     {
       icon: Calendar,
-      label: 'Appointments',
-      href: '/helpdesk/appointments',
-      color: 'from-indigo-500 to-indigo-700',
-      iconColor: 'text-indigo-600',
+      label: "Appointments",
+      href: "/helpdesk/appointments",
+      color: "from-indigo-500 to-indigo-700",
+      iconColor: "text-indigo-600",
     },
     {
       icon: DoorOpen,
-      label: 'Room Availability',
-      onClick: onRoomAvailabilityClick,
-      color: 'from-blue-500 to-blue-700',
-      iconColor: 'text-blue-600',
-      activeCheck: () => pathname.startsWith('/helpdesk/room-availability'),
+      label: "Room Availability",
+      href: "/admin/bed-management", // new path
+      color: "from-blue-500 to-blue-700",
+      iconColor: "text-blue-600",
+      activeCheck: () => pathname.startsWith("/admin/bed-management"),
     },
     {
       icon: Clock,
-      label: 'Doctor Slots',
+      label: "Doctor Slots",
       onClick: onDoctorSlotsClick,
-      color: 'from-purple-500 to-purple-700',
-      iconColor: 'text-purple-600',
-      activeCheck: () => pathname.startsWith('/helpdesk/doctor-slots'),
+      color: "from-purple-500 to-purple-700",
+      iconColor: "text-purple-600",
+      activeCheck: () => pathname.startsWith("/helpdesk/doctor-slots"),
     },
     {
       icon: Receipt,
-      label: 'Billing',
+      label: "Billing",
       onClick: onBillingClick,
-      color: 'from-amber-500 to-amber-700',
-      iconColor: 'text-amber-600',
-      activeCheck: () => pathname.startsWith('/helpdesk/billing'),
+      color: "from-amber-500 to-amber-700",
+      iconColor: "text-amber-600",
+      activeCheck: () => pathname.startsWith("/helpdesk/billing"),
     },
   ];
 
   const quickAccessItems = [
     {
       icon: User,
-      label: 'New Appointment',
-      href: '/helpdesk/appointments/new',
-      iconBg: 'bg-blue-50 dark:bg-blue-900/30',
-      iconColor: 'text-blue-600 dark:text-blue-400',
+      label: "New Appointment",
+      href: "/helpdesk/appointments/new",
+      iconBg: "bg-blue-50 dark:bg-blue-900/30",
+      iconColor: "text-blue-600 dark:text-blue-400",
     },
   ];
 
@@ -112,15 +112,15 @@ export default function HelpDeskSidebar({
   };
 
   const isActive = (href: string) => {
-    return pathname === href || pathname.startsWith(href + '/');
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
   return (
     <aside
       className={`${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
+        isOpen ? "translate-x-0" : "-translate-x-full"
       } lg:translate-x-0 fixed lg:sticky top-0 z-40 ${
-        isCollapsed ? 'w-20' : 'w-80'
+        isCollapsed ? "w-20" : "w-80"
       } flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col transition-all duration-300 ease-out shadow-xl lg:shadow-none h-screen pb-4 lg:pb-0`}
     >
       {/* Close button for mobile */}
@@ -134,7 +134,7 @@ export default function HelpDeskSidebar({
       {/* Logo Section */}
       <div
         className={`p-6 flex items-center ${
-          isCollapsed ? 'justify-center' : 'justify-between'
+          isCollapsed ? "justify-center" : "justify-between"
         } border-b border-gray-100 dark:border-gray-800 relative`}
       >
         {!isCollapsed ? (
@@ -170,10 +170,10 @@ export default function HelpDeskSidebar({
           onClick={toggleCollapse}
           className={`hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
             isCollapsed
-              ? 'absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm'
-              : ''
+              ? "absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm"
+              : ""
           }`}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
             <ChevronRight className="text-gray-600 dark:text-gray-300 w-4 h-4" />
@@ -198,30 +198,34 @@ export default function HelpDeskSidebar({
                 // Determine active state
                 const active = item.href
                   ? isActive(item.href)
-                  : item.activeCheck?.() ?? false;
+                  : (item.activeCheck?.() ?? false);
 
                 const content = (
                   <>
-                    <div className={`flex items-center ${isCollapsed ? '' : 'gap-4'}`}>
+                    <div
+                      className={`flex items-center ${isCollapsed ? "" : "gap-4"}`}
+                    >
                       <div
                         className={`w-8 h-8 flex items-center justify-center rounded-lg ${
                           active
-                            ? 'bg-blue-500 text-white'
+                            ? "bg-blue-500 text-white"
                             : `bg-gradient-to-br ${item.color} text-white`
                         }`}
                       >
                         <item.icon className="w-4 h-4" />
                       </div>
                       {!isCollapsed && (
-                        <span className="text-sm font-medium">{item.label}</span>
+                        <span className="text-sm font-medium">
+                          {item.label}
+                        </span>
                       )}
                     </div>
                     {!isCollapsed && item.badge && (
                       <span
                         className={`text-xs font-bold px-2 py-1 rounded-full ${
                           active
-                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                            ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                         }`}
                       >
                         {item.badge}
@@ -234,8 +238,8 @@ export default function HelpDeskSidebar({
                 );
 
                 const activeClasses = active
-                  ? 'bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 dark:from-blue-900/30 dark:to-blue-800/20 dark:hover:from-blue-800/40 dark:hover:to-blue-700/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/30 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50';
+                  ? "bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 dark:from-blue-900/30 dark:to-blue-800/20 dark:hover:from-blue-800/40 dark:hover:to-blue-700/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/30 shadow-sm"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50";
 
                 if (item.href) {
                   return (
@@ -244,9 +248,9 @@ export default function HelpDeskSidebar({
                       href={item.href}
                       onClick={handleLinkClick}
                       className={`flex items-center ${
-                        isCollapsed ? 'justify-center' : 'justify-between gap-4'
+                        isCollapsed ? "justify-center" : "justify-between gap-4"
                       } px-4 py-3 rounded-xl transition-all group relative ${activeClasses}`}
-                      title={isCollapsed ? item.label : ''}
+                      title={isCollapsed ? item.label : ""}
                     >
                       {content}
                     </Link>
@@ -260,9 +264,9 @@ export default function HelpDeskSidebar({
                         handleLinkClick();
                       }}
                       className={`w-full flex items-center ${
-                        isCollapsed ? 'justify-center' : 'justify-between gap-4'
+                        isCollapsed ? "justify-center" : "justify-between gap-4"
                       } px-4 py-3 rounded-xl transition-all group relative text-left ${activeClasses}`}
-                      title={isCollapsed ? item.label : ''}
+                      title={isCollapsed ? item.label : ""}
                     >
                       {content}
                     </button>
@@ -326,10 +330,10 @@ export default function HelpDeskSidebar({
             <Link
               href="/helpdesk/profile"
               className={`flex items-center ${
-                isCollapsed ? 'justify-center' : 'gap-3'
+                isCollapsed ? "justify-center" : "gap-3"
               } p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer group`}
               onClick={handleLinkClick}
-              title={isCollapsed ? 'Jane Doe - Reception Desk' : ''}
+              title={isCollapsed ? "Jane Doe - Reception Desk" : ""}
             >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-semibold text-sm">
                 JD
@@ -338,7 +342,9 @@ export default function HelpDeskSidebar({
                 <>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">Jane Doe</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Reception Desk</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      Reception Desk
+                    </p>
                   </div>
                   <div className="p-1 rounded-lg bg-white dark:bg-gray-700 group-hover:bg-gray-100 dark:group-hover:bg-gray-600">
                     <Settings className="w-3 h-3 text-gray-400" />

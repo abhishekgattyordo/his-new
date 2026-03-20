@@ -1,5 +1,10 @@
 import api from './client';
 
+interface DeletePatientResponse {
+  success: boolean;
+  message: string;
+}
+
 export const patientsApi = {
   // ========== Registration API ==========
   // Submit step 1 (personal details)
@@ -35,5 +40,13 @@ export const patientsApi = {
   adminUpdatePatient: (data: object) => api.put('/api/admin/patients', data),
 
   // Delete a patient
-  adminDeletePatient: (patientId: string) => api.delete(`/api/admin/patients?patientId=${patientId}`),
-};
+adminDeletePatient: async (patientId: string): Promise<DeletePatientResponse> => {
+  const res = await api.delete(
+    `/api/admin/patients?patientId=${patientId}`
+  );
+
+  console.log("🔥 API RAW RESPONSE:", res);
+
+  return res as unknown as DeletePatientResponse; 
+}
+}

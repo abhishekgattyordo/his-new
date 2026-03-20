@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -67,8 +69,13 @@ export default function AppointmentConfirmationPage() {
     });
   };
 
+  // ✅ Convert 24‑hour time to 12‑hour format with AM/PM
   const formatTime = (timeString: string) => {
-    return timeString;
+    if (!timeString) return "";
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, "0")} ${period}`;
   };
 
   const handleDownloadReceipt = () => {
@@ -143,6 +150,10 @@ export default function AppointmentConfirmationPage() {
                       src={summary.doctorImage}
                       alt={summary.doctorName}
                       className="w-full h-full object-cover"
+                      // ✅ Fallback to default image on error
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/default-doctor.jpg";
+                      }}
                     />
                   </div>
                   <div className="flex-1">
@@ -245,7 +256,7 @@ export default function AppointmentConfirmationPage() {
                         <span className="font-semibold text-gray-900 dark:text-white">
                           {summary.fees}
                         </span>
-                        <span className="text-xs text-green-600">Paid</span>
+                      
                       </div>
                     </div>
                   </div>

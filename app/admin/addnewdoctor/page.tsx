@@ -60,13 +60,11 @@ export default function AddNewDoctorPage() {
     const fetchOptions = async () => {
       try {
         setLoadingOptions(true);
-        console.log("Fetching specialties...");
+       
         const response = await doctorsApi.getSpecialties();
-        console.log("Raw API response:", response);
-        console.log("response.data:", response.data);
-
+  
         // ✅ Correct check: response.success and response.data array
-       if (response?.data?.success && Array.isArray(response.data.data)) {
+       if (response?.data && Array.isArray(response.data)) {
           console.log("Specialties array from API:", response.data);
 
           // Extract unique specialty names
@@ -99,6 +97,8 @@ export default function AddNewDoctorPage() {
     };
     fetchOptions();
   }, []);
+
+
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -484,7 +484,7 @@ export default function AddNewDoctorPage() {
                       </h3>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Specialty */}
+                     
                         {/* Specialty */}
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">

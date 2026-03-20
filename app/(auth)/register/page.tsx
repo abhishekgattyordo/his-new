@@ -295,7 +295,7 @@ export default function RegistrationPage() {
       
       if (data.success) {
         setError(null);
-        router.push("/dashboard?registration=success");
+        router.push("/");
         return true;
       } else {
         if (data.errors) {

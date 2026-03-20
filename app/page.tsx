@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+
 import {
   Video,
   Calendar,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/ui/Header';
 import { Footer } from '@/components/ui/Footer';
+import { useEffect,useState } from 'react';
 
 
 
@@ -91,6 +93,28 @@ const testimonials = [
 
 export default function LandingPage() {
   const featuredDoctors = mockDoctors.slice(0, 4);
+
+  
+const [user, setUser] = useState(null);
+
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+  console.log("Stored User (raw):", storedUser);
+
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      console.log("Parsed User:", parsedUser);
+
+      setUser(parsedUser);
+    } catch (e) {
+      console.error("Error parsing user:", e);
+    }
+  } else {
+    console.log("No user found in localStorage");
+  }
+}, []);
+
 
   const services = [
     {

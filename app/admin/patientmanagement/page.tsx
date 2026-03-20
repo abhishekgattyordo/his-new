@@ -1,5 +1,3 @@
-
-
 // app/admin/patientmanagement/page.tsx (updated)
 "use client";
 
@@ -7,22 +5,35 @@ import React, { useState, useEffect } from "react";
 import Header from "@/components/admin/Header";
 import Sidebar from "@/components/admin/Sidebar";
 import { useRouter } from "next/navigation";
-import { Trash2, Edit, Filter, Plus, Calendar as CalendarIcon } from "lucide-react";
 import {
-  Users,
-  Activity,
-  HeartPulse,
-  TrendingUp,
+  Trash2,
+  Edit,
+  Filter,
+  Plus,
+  Calendar as CalendarIcon,
 } from "lucide-react";
+import { Users, Activity, HeartPulse, TrendingUp } from "lucide-react";
 
 // shadcn/ui components
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Menu, X } from 'lucide-react';
-import { patientsApi } from '@/lib/api/registration';
+import { Menu, X } from "lucide-react";
+import { patientsApi } from "@/lib/api/registration";
+import { toast } from "sonner";
 
 // ==================== Types & Interfaces ====================
 interface Patient {
@@ -37,8 +48,8 @@ interface Patient {
   conditionColor: string;
   department: string;
   contact: string;
-  lastVisit: string;          // will be updated from appointments
-  nextAppointment: string;     // will be updated from appointments
+  lastVisit: string; // will be updated from appointments
+  nextAppointment: string; // will be updated from appointments
   status: "active" | "inactive" | "critical";
   statusColor: string;
 }
@@ -46,8 +57,8 @@ interface Patient {
 // Type for appointment from the API
 interface Appointment {
   id: number;
-  appointment_date: string;    // e.g., "2026-03-10T10:00:00Z"
-  status: string;               // e.g., "completed", "scheduled", "cancelled"
+  appointment_date: string; // e.g., "2026-03-10T10:00:00Z"
+  status: string; // e.g., "completed", "scheduled", "cancelled"
   // ... other fields if needed
 }
 
@@ -66,7 +77,13 @@ interface DateRangeFilterProps {
 }
 
 // ==================== Filter Components ====================
-function ColumnFilter({ column, placeholder = "Filter...", options, onFilter, currentValue }: ColumnFilterProps) {
+function ColumnFilter({
+  column,
+  placeholder = "Filter...",
+  options,
+  onFilter,
+  currentValue,
+}: ColumnFilterProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -103,7 +120,10 @@ function ColumnFilter({ column, placeholder = "Filter...", options, onFilter, cu
               <CommandGroup>
                 <CommandItem
                   onSelect={() => {
-                    const input = document.querySelector<HTMLInputElement>('[cmdk-input]')?.value;
+                    const input =
+                      document.querySelector<HTMLInputElement>(
+                        "[cmdk-input]",
+                      )?.value;
                     if (input) onFilter(column, input);
                     setOpen(false);
                   }}
@@ -119,7 +139,11 @@ function ColumnFilter({ column, placeholder = "Filter...", options, onFilter, cu
   );
 }
 
-function DateRangeFilter({ column, onFilter, currentRange }: DateRangeFilterProps) {
+function DateRangeFilter({
+  column,
+  onFilter,
+  currentRange,
+}: DateRangeFilterProps) {
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState(currentRange?.from || "");
   const [to, setTo] = useState(currentRange?.to || "");
@@ -141,7 +165,9 @@ function DateRangeFilter({ column, onFilter, currentRange }: DateRangeFilterProp
       <PopoverTrigger asChild>
         <button
           className={`ml-1 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
-            (currentRange?.from || currentRange?.to) ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+            currentRange?.from || currentRange?.to
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-400"
           }`}
         >
           <CalendarIcon className="h-3.5 w-3.5" />
@@ -173,7 +199,12 @@ function DateRangeFilter({ column, onFilter, currentRange }: DateRangeFilterProp
             </div>
           </div>
           <div className="flex justify-between gap-2">
-            <Button variant="outline" size="sm" onClick={handleClear} className="flex-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClear}
+              className="flex-1"
+            >
               Clear
             </Button>
             <Button size="sm" onClick={handleApply} className="flex-1">
@@ -191,8 +222,12 @@ const PatientManagementPage: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All Patients");
-  const [columnFilters, setColumnFilters] = useState<{ column: string; value: string }[]>([]);
-  const [dateFilters, setDateFilters] = useState<Record<string, { from: string; to: string }>>({});
+  const [columnFilters, setColumnFilters] = useState<
+    { column: string; value: string }[]
+  >([]);
+  const [dateFilters, setDateFilters] = useState<
+    Record<string, { from: string; to: string }>
+  >({});
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +238,12 @@ const PatientManagementPage: React.FC = () => {
     { title: "Total Patients", value: "0", color: "blue", icon: <Users /> },
     { title: "Active Cases", value: "0", color: "green", icon: <Activity /> },
     { title: "ICU Patients", value: "0", color: "red", icon: <HeartPulse /> },
-    { title: "Monthly Admissions", value: "0", color: "amber", icon: <TrendingUp /> },
+    {
+      title: "Monthly Admissions",
+      value: "0",
+      color: "amber",
+      icon: <TrendingUp />,
+    },
   ]);
 
   // Filter data (status filters)
@@ -217,9 +257,12 @@ const PatientManagementPage: React.FC = () => {
   // Helper to get status color
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'active': return 'text-green-700 dark:text-green-400';
-      case 'critical': return 'text-rose-700 dark:text-rose-400';
-      default: return 'text-slate-700 dark:text-slate-400';
+      case "active":
+        return "text-green-700 dark:text-green-400";
+      case "critical":
+        return "text-rose-700 dark:text-rose-400";
+      default:
+        return "text-slate-700 dark:text-slate-400";
     }
   };
 
@@ -229,171 +272,260 @@ const PatientManagementPage: React.FC = () => {
       const date = new Date(dateString);
       return date.toLocaleDateString(); // you can customize format as needed
     } catch {
-      return 'N/A';
+      return "N/A";
     }
   };
 
   // Fetch patients and then their appointments
   useEffect(() => {
-  const fetchPatientsAndAppointments = async () => {
-    try {
-      setLoading(true);
-      // 1. Fetch patients list
-      const response = await patientsApi.adminGetAllPatients();
-      console.log('API response:', response);
+    const fetchPatientsAndAppointments = async () => {
+      try {
+        setLoading(true);
+        // 1. Fetch patients list
+        const response = await patientsApi.adminGetAllPatients();
+        console.log("API response:", response);
 
-      // Extract patient array
-      let patientsArray: any[] = [];
-      if (Array.isArray(response.data)) {
-        patientsArray = response.data;
-      } else if (response.data && Array.isArray(response.data.data)) {
-        patientsArray = response.data.data;
-      } else if (response.data?.success && Array.isArray(response.data.data)) {
-        patientsArray = response.data.data;
-      } else {
-        console.error('Unexpected API response format:', response.data);
-        setError('Invalid data format from server');
-        setLoading(false);
-        return;
-      }
-
-      // Map to Patient type with placeholder dates
-      const mappedPatients: Patient[] = patientsArray.map((item: any) => {
-        const age = item.dob ? new Date().getFullYear() - new Date(item.dob).getFullYear() : 0;
-        const condition = item.allergies?.[0] || item.chronicConditions?.[0] || item.condition || 'No condition';
-        const department = item.department || 'General';
-        const status = (item.status || 'active') as "active" | "inactive" | "critical";
-        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.full_name_en || 'Patient')}&background=137fec&color=fff&size=128`;
-        const conditionColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-
-        return {
-          id: item.patient_id?.toString() || item.id?.toString() || '',
-          name: item.full_name_en || `${item.firstName || ''} ${item.lastName || ''}`.trim() || 'Unknown',
-          email: item.email || '',
-          avatarUrl,
-          age,
-          gender: item.gender
-            ? (item.gender.charAt(0).toUpperCase() + item.gender.slice(1)) as "Male" | "Female" | "Other"
-            : "Other",
-          bloodGroup: item.blood_group || 'Unknown',
-          condition,
-          conditionColor,
-          department,
-          contact: item.phone || '',
-          lastVisit: 'N/A',  // placeholder
-          nextAppointment: 'N/A', // placeholder
-          status,
-          statusColor: getStatusColor(status),
-        };
-      });
-
-      setPatients(mappedPatients);
-      updateStats(mappedPatients);
-      setError(null);
-
-      // 2. For each patient, fetch appointments and update lastVisit & nextAppointment
-      const appointmentPromises = mappedPatients.map(async (patient) => {
-        try {
-          const res = await fetch(`/api/appointments/patient/${patient.id}`);
-          if (!res.ok) {
-            console.warn(`Failed to fetch appointments for patient ${patient.id}`);
-            return { patientId: patient.id, lastVisit: 'N/A', nextAppointment: 'N/A' };
-          }
-          const json = await res.json();
-          // Handle response format { success: true, data: [...] }
-          const appointments: any[] = json.data || (Array.isArray(json) ? json : []);
-
-          const now = new Date();
-
-          // Past appointments: date before now, exclude cancelled
-          const pastAppointments = appointments
-            .filter(apt => {
-              const aptDate = new Date(apt.date);
-              return aptDate < now && apt.status !== 'CANCELLED';
-            })
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // most recent first
-
-          // Future appointments: date after or equal now, exclude cancelled
-          const futureAppointments = appointments
-            .filter(apt => {
-              const aptDate = new Date(apt.date);
-              return aptDate >= now && apt.status !== 'CANCELLED';
-            })
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // soonest first
-
-          const lastVisit = pastAppointments.length > 0 ? formatDate(pastAppointments[0].date) : 'N/A';
-          const nextAppointment = futureAppointments.length > 0 ? formatDate(futureAppointments[0].date) : 'N/A';
-
-          return { patientId: patient.id, lastVisit, nextAppointment };
-        } catch (err) {
-          console.error(`Error fetching appointments for patient ${patient.id}:`, err);
-          return { patientId: patient.id, lastVisit: 'N/A', nextAppointment: 'N/A' };
+        // Extract patient array
+        let patientsArray: any[] = [];
+        if (Array.isArray(response.data)) {
+          patientsArray = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          patientsArray = response.data.data;
+        } else if (
+          response.data?.success &&
+          Array.isArray(response.data.data)
+        ) {
+          patientsArray = response.data.data;
+        } else {
+          console.error("Unexpected API response format:", response.data);
+          setError("Invalid data format from server");
+          setLoading(false);
+          return;
         }
-      });
 
-      const appointmentResults = await Promise.allSettled(appointmentPromises);
-      // Update patients with appointment data
-      const updatedPatients = mappedPatients.map(patient => {
-        const result = appointmentResults.find(
-          r => r.status === 'fulfilled' && r.value.patientId === patient.id
-        );
-        if (result?.status === 'fulfilled') {
+        // Map to Patient type with placeholder dates
+        const mappedPatients: Patient[] = patientsArray.map((item: any) => {
+          const age = item.dob
+            ? new Date().getFullYear() - new Date(item.dob).getFullYear()
+            : 0;
+          const condition =
+            item.allergies?.[0] ||
+            item.chronicConditions?.[0] ||
+            item.condition ||
+            "No condition";
+          const department = item.department || "General";
+          const status = (item.status || "active") as
+            | "active"
+            | "inactive"
+            | "critical";
+          const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.full_name_en || "Patient")}&background=137fec&color=fff&size=128`;
+          const conditionColor =
+            "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+
           return {
-            ...patient,
-            lastVisit: result.value.lastVisit,
-            nextAppointment: result.value.nextAppointment,
+            id: item.patient_id?.toString() || item.id?.toString() || "",
+            name:
+              item.full_name_en ||
+              `${item.firstName || ""} ${item.lastName || ""}`.trim() ||
+              "Unknown",
+            email: item.email || "",
+            avatarUrl,
+            age,
+            gender: item.gender
+              ? ((item.gender.charAt(0).toUpperCase() +
+                  item.gender.slice(1)) as "Male" | "Female" | "Other")
+              : "Other",
+            bloodGroup: item.blood_group || "Unknown",
+            condition,
+            conditionColor,
+            department,
+            contact: item.phone || "",
+            lastVisit: "N/A", // placeholder
+            nextAppointment: "N/A", // placeholder
+            status,
+            statusColor: getStatusColor(status),
           };
-        }
-        return patient; // keep original placeholders
-      });
+        });
 
-      setPatients(updatedPatients);
-    } catch (err) {
-      console.error('Error fetching patients:', err);
-      setError('An error occurred while fetching patients');
-    } finally {
-      setLoading(false);
-    }
-  };
+        setPatients(mappedPatients);
+        updateStats(mappedPatients);
+        setError(null);
 
-  fetchPatientsAndAppointments();
-}, []);
+        // 2. For each patient, fetch appointments and update lastVisit & nextAppointment
+        const appointmentPromises = mappedPatients.map(async (patient) => {
+          try {
+            const res = await fetch(`/api/appointments/patient/${patient.id}`);
+            if (!res.ok) {
+              console.warn(
+                `Failed to fetch appointments for patient ${patient.id}`,
+              );
+              return {
+                patientId: patient.id,
+                lastVisit: "N/A",
+                nextAppointment: "N/A",
+              };
+            }
+            const json = await res.json();
+            // Handle response format { success: true, data: [...] }
+            const appointments: any[] =
+              json.data || (Array.isArray(json) ? json : []);
+
+            const now = new Date();
+
+            // Past appointments: date before now, exclude cancelled
+            const pastAppointments = appointments
+              .filter((apt) => {
+                const aptDate = new Date(apt.date);
+                return aptDate < now && apt.status !== "CANCELLED";
+              })
+              .sort(
+                (a, b) =>
+                  new Date(b.date).getTime() - new Date(a.date).getTime(),
+              ); // most recent first
+
+            // Future appointments: date after or equal now, exclude cancelled
+            const futureAppointments = appointments
+              .filter((apt) => {
+                const aptDate = new Date(apt.date);
+                return aptDate >= now && apt.status !== "CANCELLED";
+              })
+              .sort(
+                (a, b) =>
+                  new Date(a.date).getTime() - new Date(b.date).getTime(),
+              ); // soonest first
+
+            const lastVisit =
+              pastAppointments.length > 0
+                ? formatDate(pastAppointments[0].date)
+                : "N/A";
+            const nextAppointment =
+              futureAppointments.length > 0
+                ? formatDate(futureAppointments[0].date)
+                : "N/A";
+
+            return { patientId: patient.id, lastVisit, nextAppointment };
+          } catch (err) {
+            console.error(
+              `Error fetching appointments for patient ${patient.id}:`,
+              err,
+            );
+            return {
+              patientId: patient.id,
+              lastVisit: "N/A",
+              nextAppointment: "N/A",
+            };
+          }
+        });
+
+        const appointmentResults =
+          await Promise.allSettled(appointmentPromises);
+        // Update patients with appointment data
+        const updatedPatients = mappedPatients.map((patient) => {
+          const result = appointmentResults.find(
+            (r) => r.status === "fulfilled" && r.value.patientId === patient.id,
+          );
+          if (result?.status === "fulfilled") {
+            return {
+              ...patient,
+              lastVisit: result.value.lastVisit,
+              nextAppointment: result.value.nextAppointment,
+            };
+          }
+          return patient; // keep original placeholders
+        });
+
+        setPatients(updatedPatients);
+      } catch (err) {
+        console.error("Error fetching patients:", err);
+        setError("An error occurred while fetching patients");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatientsAndAppointments();
+  }, []);
 
   // Update stats based on patients
   const updateStats = (patients: Patient[]) => {
     const total = patients.length;
-    const active = patients.filter(p => p.status === 'active').length;
-    const critical = patients.filter(p => p.status === 'critical').length;
+    const active = patients.filter((p) => p.status === "active").length;
+    const critical = patients.filter((p) => p.status === "critical").length;
     setStatsData([
-      { title: "Total Patients", value: total.toString(), color: "blue", icon: <Users /> },
-      { title: "Active Cases", value: active.toString(), color: "green", icon: <Activity /> },
-      { title: "ICU Patients", value: critical.toString(), color: "red", icon: <HeartPulse /> },
-      { title: "Monthly Admissions", value: "187", color: "amber", icon: <TrendingUp /> },
+      {
+        title: "Total Patients",
+        value: total.toString(),
+        color: "blue",
+        icon: <Users />,
+      },
+      {
+        title: "Active Cases",
+        value: active.toString(),
+        color: "green",
+        icon: <Activity />,
+      },
+      {
+        title: "ICU Patients",
+        value: critical.toString(),
+        color: "red",
+        icon: <HeartPulse />,
+      },
+      {
+        title: "Monthly Admissions",
+        value: "187",
+        color: "amber",
+        icon: <TrendingUp />,
+      },
     ]);
   };
 
-  // Delete handler
   const handleDelete = async (patientId: string) => {
-    if (!window.confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+    console.log("🔥 Delete clicked:", patientId);
+
+    if (!window.confirm("Are you sure you want to delete this patient?"))
       return;
-    }
+
     try {
+      console.log("🚀 Calling API...");
+
       const response = await patientsApi.adminDeletePatient(patientId);
-      if (response.data?.success) {
-        setPatients(prev => prev.filter(p => p.id !== patientId));
-        updateStats(patients.filter(p => p.id !== patientId));
-      } else {
-        alert('Failed to delete patient');
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('An error occurred while deleting');
+
+console.log("✅ RESPONSE:", response);
+
+if (!response) {
+  console.log("❌ RESPONSE UNDEFINED");
+  toast.error("No response from server");
+  return;
+}
+
+if (response.success) {
+  console.log("🎉 SUCCESS BLOCK");
+
+  setPatients(prev => {
+    const updated = prev.filter(p => p.id !== patientId);
+    updateStats(updated);
+    return updated;
+  });
+
+  toast.success(response.message);
+} else {
+  console.log("⚠️ FAILED BLOCK");
+  toast.error(response.message || "Failed to delete patient");
+}
+    } catch (error: any) {
+      console.log("❌ CATCH BLOCK TRIGGERED");
+      console.error("❌ ERROR:", error);
+
+      toast.error(
+        error?.response?.data?.message || "An error occurred while deleting",
+      );
     }
   };
 
   // Filter patients
   const filteredPatients = patients.filter((patient) => {
-    const matchesSearch = searchQuery === "" ||
+    const matchesSearch =
+      searchQuery === "" ||
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.condition.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -407,21 +539,33 @@ const PatientManagementPage: React.FC = () => {
 
     const matchesColumnFilters = columnFilters.every((filter) => {
       const value = patient[filter.column as keyof Patient];
-      return value?.toString().toLowerCase().includes(filter.value.toLowerCase());
+      return value
+        ?.toString()
+        .toLowerCase()
+        .includes(filter.value.toLowerCase());
     });
 
     // Apply date range filters if present
-    const matchesDateFilters = Object.entries(dateFilters).every(([col, range]) => {
-      if (!range.from && !range.to) return true;
-      const patientDateStr = patient[col as keyof Patient] as string;
-      if (patientDateStr === 'N/A') return false;
-      const patientDate = new Date(patientDateStr).getTime();
-      if (range.from && new Date(range.from).getTime() > patientDate) return false;
-      if (range.to && new Date(range.to).getTime() < patientDate) return false;
-      return true;
-    });
+    const matchesDateFilters = Object.entries(dateFilters).every(
+      ([col, range]) => {
+        if (!range.from && !range.to) return true;
+        const patientDateStr = patient[col as keyof Patient] as string;
+        if (patientDateStr === "N/A") return false;
+        const patientDate = new Date(patientDateStr).getTime();
+        if (range.from && new Date(range.from).getTime() > patientDate)
+          return false;
+        if (range.to && new Date(range.to).getTime() < patientDate)
+          return false;
+        return true;
+      },
+    );
 
-    return matchesSearch && matchesFilter && matchesColumnFilters && matchesDateFilters;
+    return (
+      matchesSearch &&
+      matchesFilter &&
+      matchesColumnFilters &&
+      matchesDateFilters
+    );
   });
 
   // Status badge component
@@ -475,11 +619,15 @@ const PatientManagementPage: React.FC = () => {
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         aria-label="Toggle menu"
       >
-        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {isSidebarOpen ? (
+          <X className="w-5 h-5" />
+        ) : (
+          <Menu className="w-5 h-5" />
+        )}
       </button>
-      
+
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
@@ -500,7 +648,8 @@ const PatientManagementPage: React.FC = () => {
                       Patient Management
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-1">
-                      Manage patient records, appointments, and medical history in one place.
+                      Manage patient records, appointments, and medical history
+                      in one place.
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
@@ -527,7 +676,7 @@ const PatientManagementPage: React.FC = () => {
                             {stat.title}
                           </p>
                           <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                            {loading ? '...' : stat.value}
+                            {loading ? "..." : stat.value}
                           </p>
                         </div>
                         <div
@@ -535,13 +684,15 @@ const PatientManagementPage: React.FC = () => {
                             stat.color === "blue"
                               ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                               : stat.color === "green"
-                              ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
-                              : stat.color === "red"
-                              ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
-                              : "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                                ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                                : stat.color === "red"
+                                  ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
+                                  : "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
                           }`}
                         >
-                          {React.cloneElement(stat.icon, { className: "w-6 h-6" })}
+                          {React.cloneElement(stat.icon, {
+                            className: "w-6 h-6",
+                          })}
                         </div>
                       </div>
                     </div>
@@ -557,7 +708,8 @@ const PatientManagementPage: React.FC = () => {
                     <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
                       Patient Filters
                     </h3>
-                    {(columnFilters.length > 0 || Object.keys(dateFilters).length > 0) && (
+                    {(columnFilters.length > 0 ||
+                      Object.keys(dateFilters).length > 0) && (
                       <button
                         onClick={() => {
                           setColumnFilters([]);
@@ -590,7 +742,9 @@ const PatientManagementPage: React.FC = () => {
                         )}
                         <span>{filter.label}</span>
                         {selectedFilter !== filter.label && (
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs">→</span>
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs">
+                            →
+                          </span>
                         )}
                       </button>
                     ))}
@@ -598,10 +752,14 @@ const PatientManagementPage: React.FC = () => {
 
                   {/* Loading / Error states */}
                   {loading && (
-                    <div className="text-center py-8 text-slate-500">Loading patients...</div>
+                    <div className="text-center py-8 text-slate-500">
+                      Loading patients...
+                    </div>
                   )}
                   {error && (
-                    <div className="text-center py-8 text-rose-500">{error}</div>
+                    <div className="text-center py-8 text-rose-500">
+                      {error}
+                    </div>
                   )}
 
                   {/* Patients Table with Column Filters */}
@@ -619,26 +777,36 @@ const PatientManagementPage: React.FC = () => {
                                       column="name"
                                       placeholder="Filter by name..."
                                       onFilter={(col, val) => {
-                                        setColumnFilters(prev => {
-                                          const filtered = prev.filter(f => f.column !== col);
-                                          return val ? [...filtered, { column: col, value: val }] : filtered;
+                                        setColumnFilters((prev) => {
+                                          const filtered = prev.filter(
+                                            (f) => f.column !== col,
+                                          );
+                                          return val
+                                            ? [
+                                                ...filtered,
+                                                { column: col, value: val },
+                                              ]
+                                            : filtered;
                                         });
                                       }}
-                                      currentValue={columnFilters.find(f => f.column === "name")?.value}
+                                      currentValue={
+                                        columnFilters.find(
+                                          (f) => f.column === "name",
+                                        )?.value
+                                      }
                                     />
                                   </div>
                                 </th>
-                            
-                              
+
                                 <th className="px-4 py-3 text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-300 dark:border-slate-700">
                                   <div className="flex items-center">
                                     Last Visit
                                     <DateRangeFilter
                                       column="lastVisit"
                                       onFilter={(col, from, to) => {
-                                        setDateFilters(prev => ({
+                                        setDateFilters((prev) => ({
                                           ...prev,
-                                          [col]: { from, to }
+                                          [col]: { from, to },
                                         }));
                                       }}
                                       currentRange={dateFilters.lastVisit}
@@ -651,9 +819,9 @@ const PatientManagementPage: React.FC = () => {
                                     <DateRangeFilter
                                       column="nextAppointment"
                                       onFilter={(col, from, to) => {
-                                        setDateFilters(prev => ({
+                                        setDateFilters((prev) => ({
                                           ...prev,
-                                          [col]: { from, to }
+                                          [col]: { from, to },
                                         }));
                                       }}
                                       currentRange={dateFilters.nextAppointment}
@@ -665,14 +833,29 @@ const PatientManagementPage: React.FC = () => {
                                     Status
                                     <ColumnFilter
                                       column="status"
-                                      options={["active", "inactive", "critical"]}
+                                      options={[
+                                        "active",
+                                        "inactive",
+                                        "critical",
+                                      ]}
                                       onFilter={(col, val) => {
-                                        setColumnFilters(prev => {
-                                          const filtered = prev.filter(f => f.column !== col);
-                                          return val ? [...filtered, { column: col, value: val }] : filtered;
+                                        setColumnFilters((prev) => {
+                                          const filtered = prev.filter(
+                                            (f) => f.column !== col,
+                                          );
+                                          return val
+                                            ? [
+                                                ...filtered,
+                                                { column: col, value: val },
+                                              ]
+                                            : filtered;
                                         });
                                       }}
-                                      currentValue={columnFilters.find(f => f.column === "status")?.value}
+                                      currentValue={
+                                        columnFilters.find(
+                                          (f) => f.column === "status",
+                                        )?.value
+                                      }
                                     />
                                   </div>
                                 </th>
@@ -686,13 +869,19 @@ const PatientManagementPage: React.FC = () => {
                                 <tr
                                   key={patient.id}
                                   className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-                                  onClick={() => router.push(`/admin/patientmanagement/${patient.id}`)}
+                                  onClick={() =>
+                                    router.push(
+                                      `/admin/patientmanagement/${patient.id}`,
+                                    )
+                                  }
                                 >
                                   <td className="px-4 py-3 whitespace-nowrap border-r border-slate-200 dark:border-slate-700">
                                     <div className="flex items-center gap-3">
                                       <div
                                         className="h-10 w-10 rounded-full bg-slate-200 bg-cover bg-center ring-2 ring-slate-100 dark:ring-slate-800 flex-shrink-0"
-                                        style={{ backgroundImage: `url(${patient.avatarUrl})` }}
+                                        style={{
+                                          backgroundImage: `url(${patient.avatarUrl})`,
+                                        }}
                                       ></div>
                                       <div className="flex flex-col">
                                         <span className="text-slate-900 dark:text-white font-semibold text-base">
@@ -720,8 +909,13 @@ const PatientManagementPage: React.FC = () => {
                                         className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          console.log("Edit clicked for patient:", patient);
-                                          router.push(`/admin/addnewpatient?patientId=${patient.id}`);
+                                          console.log(
+                                            "Edit clicked for patient:",
+                                            patient,
+                                          );
+                                          router.push(
+                                            `/admin/addnewpatient?patientId=${patient.id}`,
+                                          );
                                         }}
                                       >
                                         <Edit className="w-4 h-4" />
@@ -745,7 +939,8 @@ const PatientManagementPage: React.FC = () => {
                       </div>
                       <div className="px-4 py-3 border-t border-slate-300 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
                         <span className="text-sm text-slate-500 font-medium">
-                          Showing 1 to {filteredPatients.length} of {patients.length} patients
+                          Showing 1 to {filteredPatients.length} of{" "}
+                          {patients.length} patients
                         </span>
                         <div className="flex gap-2">
                           <button className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
