@@ -8,7 +8,7 @@ declare module 'axios' {
 }
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://his-pied.vercel.app/',
+  baseURL: process.env.NEXT_PUBLIC_API_URL ||'https://his-pied.vercel.app/',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
