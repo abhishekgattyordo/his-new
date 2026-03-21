@@ -7,15 +7,8 @@ declare module 'axios' {
   }
 }
 
-// const apiClient = axios.create({
-//   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/',
-//   timeout: 15000,
-//   headers: {
-//     'Content-Type': 'application/json',
-//   },
-// });
 const apiClient = axios.create({
-  baseURL: 'https://his-pied.vercel.app', // ✅ production URL added
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://his-pied.vercel.app/',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
