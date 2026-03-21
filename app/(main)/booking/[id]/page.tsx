@@ -983,7 +983,7 @@ function BookingPageContent() {
           reviews: 0,
           experience: doc.experience || 0,
           image: doc.avatar
-            ? `https://his-frontend-seven.vercel.app${doc.avatar}`
+            ? `https://his-final.vercel.app${doc.avatar}`
             : "/default-doctor.jpg",
           fees: doc.fee ? Number(doc.fee) : 500,
           education: doc.qualifications || [],
