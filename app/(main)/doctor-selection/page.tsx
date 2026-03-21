@@ -189,7 +189,7 @@ export default function AppointmentBookingPage() {
               } else {
                 // Remove leading slash if present to avoid double slashes
                 const avatarPath = doc.avatar.startsWith('/') ? doc.avatar : `/${doc.avatar}`;
-                profilePhoto = `https://his-pied.vercel.app${avatarPath}`;
+                profilePhoto = `https://his-frontend-seven.vercel.app${avatarPath}`;
               }
             }
 
