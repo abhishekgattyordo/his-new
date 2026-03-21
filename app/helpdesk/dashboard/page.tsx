@@ -148,13 +148,13 @@ export default function HelpDeskDashboard() {
                 <h1 className="text-3xl font-bold text-gray-900">Welcome back, Jane!</h1>
                 <p className="text-sm text-gray-500 mt-1">Here's what's happening at the help desk today.</p>
               </div>
-              <button
+              {/* <button
                 onClick={() => router.push('/helpdesk/appointments/new')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
               >
                 <UserPlus className="w-4 h-4" />
                 New Appointment
-              </button>
+              </button> */}
             </div>
 
             {/* Quick Stats Cards */}

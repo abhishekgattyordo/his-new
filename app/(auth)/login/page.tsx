@@ -417,7 +417,7 @@ export default function LoginPage() {
           router.push("/pharmacy/dashboard");
           break;
         case "helpdesk":
-          router.push("/helpdesk");
+          router.push("/helpdesk/dashboard");
           break;
         default:
           router.push("/");

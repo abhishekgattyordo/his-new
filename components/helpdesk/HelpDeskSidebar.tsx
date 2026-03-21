@@ -95,15 +95,15 @@ export default function HelpDeskSidebar({
     },
   ];
 
-  const quickAccessItems = [
-    {
-      icon: User,
-      label: "New Appointment",
-      href: "/helpdesk/appointments/new",
-      iconBg: "bg-blue-50 dark:bg-blue-900/30",
-      iconColor: "text-blue-600 dark:text-blue-400",
-    },
-  ];
+  // const quickAccessItems = [
+  //   {
+  //     icon: User,
+  //     label: "New Appointment",
+  //     href: "/helpdesk/appointments/new",
+  //     iconBg: "bg-blue-50 dark:bg-blue-900/30",
+  //     iconColor: "text-blue-600 dark:text-blue-400",
+  //   },
+  // ];
 
   const handleLinkClick = () => {
     if (window.innerWidth < 1024) {
@@ -277,7 +277,7 @@ export default function HelpDeskSidebar({
           </div>
 
           {/* Quick Access */}
-          {!isCollapsed && (
+          {/* {!isCollapsed && (
             <div className="pt-8">
               <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 mb-3">
                 Quick Access
@@ -300,10 +300,10 @@ export default function HelpDeskSidebar({
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Quick Access Icons Only (when collapsed) */}
-          {isCollapsed && (
+          {/* {isCollapsed && (
             <div className="pt-8 space-y-2">
               {quickAccessItems.map((item) => (
                 <Link
@@ -321,7 +321,7 @@ export default function HelpDeskSidebar({
                 </Link>
               ))}
             </div>
-          )}
+          )} */}
         </nav>
 
         {/* User Profile Section */}
