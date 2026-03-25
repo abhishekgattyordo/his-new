@@ -146,15 +146,16 @@ export default function AppointmentConfirmationPage() {
                 {/* Doctor Info */}
                 <div className="flex items-start gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
                   <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-green-100 dark:border-green-900/30">
-                    <img
-                      src={summary.doctorImage}
-                      alt={summary.doctorName}
-                      className="w-full h-full object-cover"
-                      // ✅ Fallback to default image on error
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/default-doctor.jpg";
-                      }}
-                    />
+                 {summary.doctorImage ? (
+  <img
+    src={summary.doctorImage}
+    alt={summary.doctorName}
+    className="w-full h-full object-cover"
+    onError={(e) => {
+      (e.target as HTMLImageElement).src = "/default-doctor.jpg";
+    }}
+  />
+) : null}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">

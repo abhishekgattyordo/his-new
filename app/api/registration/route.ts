@@ -8,6 +8,9 @@ import {
   Step2Input,
   Step3Input 
 } from '../../../lib/validations/registration';
+import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { sendPasswordEmail } from '@/lib/api/email';
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -21,6 +24,13 @@ function generatePatientId(): string {
   const patientId = `${timestamp}${random.toString().padStart(4, '0')}`;
   console.log('✅ Generated patient ID:', patientId);
   return patientId;
+}
+
+function generateRandomPassword(length = 12): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+  return Array.from(randomBytes(length))
+    .map(byte => chars[byte % chars.length])
+    .join('');
 }
 
 /**
@@ -298,9 +308,9 @@ async function handleStep3(data: Step3Input) {
 
   console.log('🔍 Processing Step 3 for patient:', patientId);
 
-  // Verify patient exists and get current step
+  // Verify patient exists and get current step & email
   const patientResult = await query(
-    'SELECT patient_id, registration_step FROM patients WHERE patient_id = $1',
+    'SELECT patient_id, registration_step, email, full_name_en FROM patients WHERE patient_id = $1',
     [patientId]
   );
 
@@ -316,7 +326,6 @@ async function handleStep3(data: Step3Input) {
 
   const patient = patientResult.rows[0];
 
-  // Check if previous steps are completed
   if (patient.registration_step < 2) {
     return NextResponse.json(
       { 
@@ -329,6 +338,10 @@ async function handleStep3(data: Step3Input) {
 
   const registrationId = generateRegistrationId();
 
+  // 👇 Generate a random password
+  const plainPassword = generateRandomPassword(12);
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
   // Use transaction for final registration
   await transaction(async (client) => {
     // Delete existing insurance details for this patient (if any)
@@ -337,18 +350,11 @@ async function handleStep3(data: Step3Input) {
       [patientId]
     );
 
-    // Insert insurance details – abha_id column removed
     await client.query(
       `INSERT INTO insurance_details 
        (patient_id, insurance_provider, policy_number, valid_until, group_id) 
        VALUES ($1, $2, $3, $4, $5)`,
-      [
-        patientId,
-        insuranceProvider || null,
-        policyNumber || null,
-        validUntil || null,
-        groupId || null
-      ]
+      [patientId, insuranceProvider || null, policyNumber || null, validUntil || null, groupId || null]
     );
 
     // Update patient registration step to completed
@@ -370,9 +376,34 @@ async function handleStep3(data: Step3Input) {
        VALUES ($1, $2, $3, NOW())`,
       [patientId, registrationId, 'ACTIVE']
     );
+
+    // 👇 Create/update user account for the patient
+    const existingUser = await client.query(
+      'SELECT id FROM users WHERE email = $1',
+      [patient.email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      // Update existing user with the new password and link to patient
+      await client.query(
+        `UPDATE users 
+         SET password = $1, patient_id = $2, full_name_en = $3, role = 'patient', updated_at = NOW()
+         WHERE email = $4`,
+        [hashedPassword, patientId, patient.full_name_en, patient.email]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO users (email, password, full_name_en, role, patient_id, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+        [patient.email, hashedPassword, patient.full_name_en, 'patient', patientId]
+      );
+    }
   });
 
-  // Get complete registration data – includes new patient fields
+  // Send the password to the patient's email
+  await sendPasswordEmail(patient.email, plainPassword, patient.full_name_en);
+
+  // Get complete registration data
   const registrationResult = await query(
     `SELECT 
       p.patient_id,
@@ -407,20 +438,30 @@ async function handleStep3(data: Step3Input) {
   
   const registration = registrationResult.rows[0];
 
+  // Optional: include the plain password in the response (only for development)
+  const responseData = {
+    ...registration,
+    registrationStep: 3,
+    completed: true,
+    nextSteps: [
+      "Check your email for login credentials",
+      "Download your digital health card",
+      "Schedule your first appointment",
+      "Access your health records",
+    ],
+  };
+
+  // In production, do not send the plain password back.
+  // For development, you might include it for testing.
+  if (process.env.NODE_ENV !== 'production') {
+    responseData.generatedPassword = plainPassword;
+  }
+
   return NextResponse.json(
     {
       success: true,
-      message: "Registration completed successfully!",
-      data: {
-        ...registration,
-        registrationStep: 3,
-        completed: true,
-        nextSteps: [
-          "Download your digital health card",
-          "Schedule your first appointment",
-          "Access your health records",
-        ],
-      },
+      message: "Registration completed successfully! A password has been sent to your email.",
+      data: responseData,
     },
     { status: 200 }
   );

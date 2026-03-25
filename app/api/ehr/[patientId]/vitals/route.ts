@@ -132,12 +132,38 @@ export async function POST(
 
     const { bp, hr, temp, weight, rr, spo2, recordedBy } = body;
 
+    // Helper: convert empty string, undefined, or null to null for numeric fields
+    const toNumberOrNull = (val: any): number | null => {
+      if (val === undefined || val === null || val === '') return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    };
+
+    // Sanitize numeric fields
+    const sanitizedHr = toNumberOrNull(hr);
+    const sanitizedTemp = toNumberOrNull(temp);
+    const sanitizedWeight = toNumberOrNull(weight);
+    const sanitizedRr = toNumberOrNull(rr);
+    const sanitizedSpo2 = toNumberOrNull(spo2);
+
+    // BP is text, but we still convert empty string to null
+    const sanitizedBp = bp === '' ? null : bp;
+
     // Insert vitals record
     await client.query(
       `INSERT INTO vitals
         (appointment_id, bp, hr, temp, weight, rr, spo2, recorded_by, recorded_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
-      [appointmentId, bp, hr, temp, weight, rr, spo2, recordedBy]
+      [
+        appointmentId,
+        sanitizedBp,
+        sanitizedHr,
+        sanitizedTemp,
+        sanitizedWeight,
+        sanitizedRr,
+        sanitizedSpo2,
+        recordedBy || null, // allow recordedBy to be null if not provided
+      ]
     );
 
     return NextResponse.json({

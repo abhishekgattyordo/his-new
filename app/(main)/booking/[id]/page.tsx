@@ -777,7 +777,7 @@ interface Doctor {
   firstName: string;
   name: string;
   lastName: string;
-  image: string;
+ image: string | null;
   fees: number;
   email: string;
   phone: string;
@@ -818,7 +818,7 @@ interface BookingDoctor {
   rating: number;
   reviews: number;
   experience: number;
-  image: string;
+  image: string | null;
   fees: number;
   education: string[];
   languages: string[];
@@ -982,9 +982,9 @@ function BookingPageContent() {
           rating: doc.rating || 4.5,
           reviews: 0,
           experience: doc.experience || 0,
-          image: doc.avatar
-            ? `https://his-final.vercel.app${doc.avatar}`
-            : "/default-doctor.jpg",
+         image: doc.avatar
+  ? `http://localhost:3000/${doc.avatar}`
+  : null,
           fees: doc.fee ? Number(doc.fee) : 500,
           education: doc.qualifications || [],
           languages: [],
@@ -1238,7 +1238,7 @@ function BookingPageContent() {
                   <div className="flex-shrink-0">
                     <div className="w-20 h-20 relative rounded-full overflow-hidden border-4 border-white shadow-sm">
                       <Image
-                        src={doctor.image}
+                         src={doctor.image ?? "/default-doctor.jpg"}
                         alt={doctor.name}
                         width={80}
                         height={80}

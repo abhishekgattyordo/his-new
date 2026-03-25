@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, X, Calendar, Users, Clock, DollarSign, ArrowRight, TrendingUp, UserPlus } from "lucide-react";
+import {
+  Menu,
+  X,
+  Calendar,
+  Users,
+  Clock,
+  DollarSign,
+  ArrowRight,
+  TrendingUp,
+  UserPlus,
+} from "lucide-react";
 import HelpDeskSidebar from "@/components/helpdesk/HelpDeskSidebar";
 import HelpDeskStats from "@/components/helpdesk/HelpDeskStats";
 import { appointmentsApi } from "@/lib/api/appointments";
@@ -24,50 +34,56 @@ export default function HelpDeskDashboard() {
   const [loading, setLoading] = useState(true);
   const [todayAppointmentsCount, setTodayAppointmentsCount] = useState(0);
   const [patientsTodayCount, setPatientsTodayCount] = useState(0);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<
+    Appointment[]
+  >([]);
 
-  const handleBillingClick = () => router.push('/helpdesk/billing');
-  const handleRoomAvailabilityClick = () => router.push('/helpdesk/room-availability');
-  const handleDoctorSlotsClick = () => router.push('/helpdesk/doctor-slots');
+  const handleBillingClick = () => router.push("/helpdesk/billing");
+  const handleRoomAvailabilityClick = () =>
+    router.push("/helpdesk/room-availability");
+  const handleDoctorSlotsClick = () => router.push("/helpdesk/doctor-slots");
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
-  setLoading(true);
-  try {
-    const today = new Date().toISOString().split('T')[0];
+    setLoading(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
 
-    // Fetch today's appointments
-    const appointmentsRes = await appointmentsApi.getAppointmentsByDate(today);
-    const appointments = appointmentsRes.data|| [];
+      // Fetch today's appointments
+      const appointmentsRes =
+        await appointmentsApi.getAppointmentsByDate(today);
+      const appointments = appointmentsRes.data || [];
 
-    // Count unique patients
-    const uniquePatientIds = new Set(appointments.map((apt: any) => apt.patient_id));
-    setPatientsTodayCount(uniquePatientIds.size);
+      // Count unique patients
+      const uniquePatientIds = new Set(
+        appointments.map((apt: any) => apt.patient_id),
+      );
+      setPatientsTodayCount(uniquePatientIds.size);
 
-    // Set appointment count
-    setTodayAppointmentsCount(appointments.length);
+      // Set appointment count
+      setTodayAppointmentsCount(appointments.length);
 
-    // Map to the Appointment type expected by the UI
-    const mappedAppointments = appointments.map((apt: any) => ({
-      id: apt.appointment_id,
-      patientName: apt.patient_name || 'Unknown',
-      appointmentDate: apt.appointment_date,
-      appointmentTime: apt.appointment_time,
-      doctorName: apt.doctor_name || 'Unknown',
-      status: apt.status,
-    }));
+      // Map to the Appointment type expected by the UI
+      const mappedAppointments = appointments.map((apt: any) => ({
+        id: apt.appointment_id,
+        patientName: apt.patient_name || "Unknown",
+        appointmentDate: apt.appointment_date,
+        appointmentTime: apt.appointment_time,
+        doctorName: apt.doctor_name || "Unknown",
+        status: apt.status,
+      }));
 
-    setUpcomingAppointments(mappedAppointments.slice(0, 5));
-  } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-    toast.error("Failed to load dashboard data");
-  } finally {
-    setLoading(false);
-  }
-};
+      setUpcomingAppointments(mappedAppointments.slice(0, 5));
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Mock data for stats that aren't yet backed by API
   const quickStats = [
@@ -125,10 +141,15 @@ export default function HelpDeskDashboard() {
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         {/* Mobile header */}
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
             <span className="material-icons">menu</span>
           </button>
-          <h1 className="text-xl font-bold text-gray-800 truncate">Dashboard</h1>
+          <h1 className="text-xl font-bold text-gray-800 truncate">
+            Dashboard
+          </h1>
         </header>
 
         {/* Mobile toggle button */}
@@ -137,7 +158,11 @@ export default function HelpDeskDashboard() {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileMenuOpen ? (
+            <X className="w-5 h-5" />
+          ) : (
+            <Menu className="w-5 h-5" />
+          )}
         </button>
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
@@ -145,8 +170,12 @@ export default function HelpDeskDashboard() {
             {/* Welcome Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Welcome back, Jane!</h1>
-                <p className="text-sm text-gray-500 mt-1">Here's what's happening at the help desk today.</p>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Welcome back, Jane!
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Here's what's happening at the help desk today.
+                </p>
               </div>
               {/* <button
                 onClick={() => router.push('/helpdesk/appointments/new')}
@@ -160,8 +189,11 @@ export default function HelpDeskDashboard() {
             {/* Quick Stats Cards */}
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {[1,2,3,4].map(i => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm animate-pulse">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm animate-pulse"
+                  >
                     <div className="h-16 bg-gray-200 rounded"></div>
                   </div>
                 ))}
@@ -169,16 +201,27 @@ export default function HelpDeskDashboard() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {quickStats.map((stat, index) => (
-                  <div key={index} className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div
+                    key={index}
+                    className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
                     <div className="flex items-start justify-between">
-                      <div className={`p-1.5 sm:p-2 rounded-lg ${stat.bgColor}`}>{stat.icon}</div>
+                      <div
+                        className={`p-1.5 sm:p-2 rounded-lg ${stat.bgColor}`}
+                      >
+                        {stat.icon}
+                      </div>
                       <span className="text-xs font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                         <TrendingUp className="w-2.5 h-2.5" />
                         {stat.change}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3">{stat.title}</p>
-                    <p className="text-base sm:text-xl font-bold text-gray-900 mt-0.5">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3">
+                      {stat.title}
+                    </p>
+                    <p className="text-base sm:text-xl font-bold text-gray-900 mt-0.5">
+                      {stat.value}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -186,89 +229,82 @@ export default function HelpDeskDashboard() {
 
             {/* Main Stats from HelpDeskStats (reuse) */}
             <div className="mt-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">Appointment Overview</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                Appointment Overview
+              </h2>
               <HelpDeskStats />
             </div>
 
             {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Recent Activity */}
-              <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
-                {recentActivities.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentActivities.map((activity) => (
-                      <div key={activity.id} className="flex items-start gap-3">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${activity.color}`}></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-800">{activity.action}</p>
-                          <p className="text-xs text-gray-500">{activity.patient} • {activity.time}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No recent activity</p>
-                )}
-                <button className="mt-4 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                  View all activity
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Quick Actions */}
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-6">
+           
               <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                  Quick Actions
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <button
-                    onClick={() => router.push('/helpdesk/appointments/new')}
+                    onClick={() => router.push("/helpdesk/appointments/new")}
                     className="p-4 bg-blue-50 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors text-left"
                   >
                     <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white mb-3">
                       <Calendar className="w-5 h-5" />
                     </div>
-                    <h3 className="font-medium text-gray-900">Book Appointment</h3>
-                    <p className="text-sm text-gray-500 mt-1">Schedule a new appointment for a patient</p>
+                    <h3 className="font-medium text-gray-900">
+                      Book Appointment
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Schedule a new appointment for a patient
+                    </p>
                   </button>
 
                   <button
-                    onClick={() => router.push('/helpdesk/doctor-slots')}
+                    onClick={() => router.push("/helpdesk/doctor-slots")}
                     className="p-4 bg-purple-50 rounded-xl border border-purple-100 hover:bg-purple-100 transition-colors text-left"
                   >
                     <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center text-white mb-3">
                       <Clock className="w-5 h-5" />
                     </div>
-                    <h3 className="font-medium text-gray-900">Manage Doctor Slots</h3>
-                    <p className="text-sm text-gray-500 mt-1">Update availability for doctors</p>
+                    <h3 className="font-medium text-gray-900">
+                      Manage Doctor Slots
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Update availability for doctors
+                    </p>
                   </button>
 
                   <button
-                    onClick={() => router.push('/helpdesk/billing')}
+                    onClick={() => router.push("/helpdesk/billing")}
                     className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-colors text-left"
                   >
                     <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white mb-3">
                       <DollarSign className="w-5 h-5" />
                     </div>
-                    <h3 className="font-medium text-gray-900">Process Payment</h3>
-                    <p className="text-sm text-gray-500 mt-1">Create invoice or collect payment</p>
+                    <h3 className="font-medium text-gray-900">
+                      Process Payment
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Create invoice or collect payment
+                    </p>
                   </button>
 
                   <button
-                    onClick={() => router.push('/helpdesk/room-availability')}
+                    onClick={() => router.push("/helpdesk/room-availability")}
                     className="p-4 bg-amber-50 rounded-xl border border-amber-100 hover:bg-amber-100 transition-colors text-left"
                   >
                     <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center text-white mb-3">
                       <Users className="w-5 h-5" />
                     </div>
-                    <h3 className="font-medium text-gray-900">Room Availability</h3>
-                    <p className="text-sm text-gray-500 mt-1">Check and manage room schedules</p>
+                    <h3 className="font-medium text-gray-900">
+                      Room Availability
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Check and manage room schedules
+                    </p>
                   </button>
                 </div>
               </div>
             </div>
-
-       
-            
           </div>
         </main>
       </div>

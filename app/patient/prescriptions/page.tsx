@@ -118,7 +118,6 @@ export default function PrescriptionsPage() {
         }
       } catch (error) {
         console.error("Error fetching initial visit:", error);
-        toast.error("Failed to load visit data");
       } finally {
         setLoading(false);
       }
@@ -253,7 +252,7 @@ export default function PrescriptionsPage() {
       }
     } catch (error) {
       console.error("Error fetching data for date:", error);
-      toast.error("Failed to load data for selected date");
+    
     }
   };
 

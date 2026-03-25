@@ -45,12 +45,12 @@ export default function AppointmentsTable({
   getStatusColor,
   getTypeColor,
 }: AppointmentsTableProps) {
+  // Removed "status" from filters
   const [filters, setFilters] = useState({
     patient: "",
     date: "",
     doctor: "",
     type: "",
-    status: "",
   });
 
   const [openFilter, setOpenFilter] = useState<string | null>(null);
@@ -93,12 +93,7 @@ export default function AppointmentsTable({
       const matchType =
         filters.type === "" ||
         apt.type.toLowerCase().includes(filters.type.toLowerCase());
-      const matchStatus =
-        filters.status === "" ||
-        apt.status.toLowerCase().includes(filters.status.toLowerCase());
-      return (
-        matchPatient && matchDate && matchDoctor && matchType && matchStatus
-      );
+      return matchPatient && matchDate && matchDoctor && matchType;
     });
   }, [appointments, filters]);
 
@@ -169,7 +164,6 @@ export default function AppointmentsTable({
         <FilterPopover column="date" placeholder="Filter date..." />
         <FilterPopover column="doctor" placeholder="Filter doctor..." />
         <FilterPopover column="type" placeholder="Filter type..." />
-        <FilterPopover column="status" placeholder="Filter status..." />
       </div>
 
       {/* Table wrapper with horizontal scroll */}
@@ -215,17 +209,6 @@ export default function AppointmentsTable({
                     <FilterPopover
                       column="type"
                       placeholder="Filter by type..."
-                    />
-                  </span>
-                </div>
-              </th>
-              <th className="p-2 sm:p-3 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
-                <div className="flex items-center gap-1">
-                  STATUS
-                  <span className="hidden lg:inline">
-                    <FilterPopover
-                      column="status"
-                      placeholder="Filter by status..."
                     />
                   </span>
                 </div>
@@ -293,15 +276,6 @@ export default function AppointmentsTable({
                   </div>
                 </td>
                 <td className="p-2 sm:p-3 border border-gray-200">
-                  <div className="whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full font-medium inline-flex items-center gap-1 ${getStatusColor(apt.status)}`}
-                    >
-                      {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
-                    </span>
-                  </div>
-                </td>
-                <td className="p-2 sm:p-3 border border-gray-200">
                   {/* Actions: only for today's appointments */}
                   <div className="flex gap-2 whitespace-nowrap">
                     {(() => {
@@ -312,7 +286,7 @@ export default function AppointmentsTable({
                         aptDate.getMonth() === today.getMonth() &&
                         aptDate.getDate() === today.getDate();
 
-                      if (!isToday) return null; // hide actions for previous/future appointments
+                      if (!isToday) return null;
 
                       return (
                         <>

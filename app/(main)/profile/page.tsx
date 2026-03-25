@@ -55,7 +55,7 @@ interface Appointment {
   id: string;
   doctorName: string;
   doctorSpecialty: string;
-  doctorImage: string;
+  doctorImage: string ;
   hospital: string;
   date: string;
   time: string;
