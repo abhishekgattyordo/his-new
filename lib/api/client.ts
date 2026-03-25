@@ -6,16 +6,22 @@ declare module 'axios' {
     _retry?: boolean;
   }
 }
+// const apiClient = axios.create({
+//   baseURL: process.env.NEXT_PUBLIC_API_URL || (
+//     process.env.NODE_ENV === 'production' 
+//       ? 'https://his-project-ruby.vercel.app/' 
+//       : 'http://localhost:3000'
+//   ),
+//   timeout: 15000,
+//   headers: {
+//     'Content-Type': 'application/json',
+//   },
+// });
+
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || (
-    process.env.NODE_ENV === 'production' 
-      ? 'https://his-project-ruby.vercel.app/' 
-      : 'http://localhost:3000'
-  ),
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // Request interceptor - adds token to requests
