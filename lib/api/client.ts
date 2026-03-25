@@ -9,7 +9,7 @@ declare module 'axios' {
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || (
     process.env.NODE_ENV === 'production' 
-      ? 'https://his-final.vercel.app/' 
+      ? 'https://his-project-ruby.vercel.app/' 
       : 'http://localhost:3000'
   ),
   timeout: 15000,
