@@ -92,10 +92,16 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify(data.user));
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
+     localStorage.setItem("user", JSON.stringify(data.user));
+
+// Store access token with the key expected by the interceptor
+if (data.token) {
+  localStorage.setItem("accessToken", data.token);
+}
+// If the response also contains a refresh token, store it
+if (data.refreshToken) {
+  localStorage.setItem("refreshToken", data.refreshToken);
+}
 
       console.log("✅ Login successful for:", data.user.email, "Role:", data.user.role);
 
@@ -203,7 +209,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label>Email or Patient ID</Label>
+              <Label>Email</Label>
               <div className="relative mt-2">
                 <Mail className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                 <Input
@@ -213,7 +219,7 @@ export default function LoginPage() {
                   )}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email or patient ID"
+                  placeholder="Enter your email "
                   disabled={isLoading}
                 />
               </div>

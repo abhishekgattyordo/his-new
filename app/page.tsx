@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { supabase } from '@/lib/supabaseClient';
 
 import {
   Video,
@@ -96,6 +97,13 @@ export default function LandingPage() {
 
   
 const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) console.error('Supabase client error:', error);
+      else console.log('Session:', data);
+    });
+  }, []);
 
 useEffect(() => {
   const storedUser = localStorage.getItem("user");
