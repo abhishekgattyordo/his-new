@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
        VALUES ($1, $2, $3)`,
       [user.id, token, expiresAt]
     );
-
+const baseURL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_API_URL;
     // Create reset link (adjust domain as needed)
-    const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+   const resetLink = `${baseURL}/reset-password?token=${token}`;
     await sendPasswordResetEmail(email, resetLink, user.full_name_en);
 
     return NextResponse.json({

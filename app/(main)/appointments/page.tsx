@@ -185,11 +185,18 @@ export default function AppointmentBookingPage() {
               // Check if avatar is already a full URL
               if (doc.avatar.startsWith('http')) {
                 profilePhoto = doc.avatar;
-              } else {
-                // Remove leading slash if present to avoid double slashes
-                const avatarPath = doc.avatar.startsWith('/') ? doc.avatar : `/${doc.avatar}`;
-                profilePhoto = `http://localhost:3000/${avatarPath}`;
-              }
+             } else {
+  const avatarPath = doc.avatar.startsWith('/')
+    ? doc.avatar
+    : `/${doc.avatar}`;
+
+  const baseURL =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_API_URL;
+
+  profilePhoto = `${baseURL}${avatarPath}`;
+}
             }
 
             return {
