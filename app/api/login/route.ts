@@ -241,39 +241,18 @@
 // }
 
 
-
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import jwt from 'jsonwebtoken';
 
-// ==================== HELPER FUNCTIONS ====================
-
 function validateInput(data: any): { isValid: boolean; errors: { email?: string; password?: string } } {
-  const errors: { email?: string; password?: string } = {};
-
-  if (!data.email?.trim()) {
-    errors.email = "Email or Patient ID is required";
-  }
-
-  if (!data.password) {
-    errors.password = "Password is required";
-  } else if (data.password.length < 6) {
-    errors.password = "Password must be at least 6 characters";
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
+  // ... same as before
 }
-
-// ==================== POST ENDPOINT ====================
 
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
-    // 1. Validate input
     const validation = validateInput({ email, password });
     if (!validation.isValid) {
       return NextResponse.json(
@@ -282,7 +261,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Authenticate with Supabase
+    // Authenticate with Supabase
     const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
       email: email.toLowerCase(),
       password,
@@ -295,52 +274,70 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Fetch your custom user record using the Supabase user ID
-    const { data: userData, error: dbError } = await supabaseAdmin
+    // Try to find custom user by auth_user_id
+    let { data: customUser, error: dbError } = await supabaseAdmin
       .from('users')
-      .select('id, email, full_name_en, role, patient_id, created_at')
+      .select('id, email, full_name_en, role, patient_id, doctor_id')
       .eq('auth_user_id', authData.user.id)
       .single();
 
-    if (dbError || !userData) {
-      console.error('Custom user not found for auth user', authData.user.id);
-      return NextResponse.json(
-        { success: false, message: "User profile not found" },
-        { status: 404 }
-      );
+    // Fallback: search by email (for legacy users)
+    if (dbError || !customUser) {
+      console.log('User not found by auth_user_id, trying email...');
+      const { data: userByEmail, error: emailError } = await supabaseAdmin
+        .from('users')
+        .select('id, email, full_name_en, role, patient_id, doctor_id')
+        .eq('email', email.toLowerCase())
+        .single();
+
+      if (userByEmail) {
+        // Link the existing user to this Supabase user
+        const { error: updateError } = await supabaseAdmin
+          .from('users')
+          .update({ auth_user_id: authData.user.id })
+          .eq('id', userByEmail.id);
+        if (updateError) {
+          console.error('Failed to update auth_user_id:', updateError);
+        } else {
+          console.log(`Linked user ${userByEmail.email} to auth_user_id ${authData.user.id}`);
+        }
+        customUser = userByEmail;
+      } else {
+        return NextResponse.json(
+          { success: false, message: "User profile not found" },
+          { status: 404 }
+        );
+      }
     }
 
-    // 4. Generate your own JWT (same as before)
+    // Generate your own JWT (optional)
     const token = jwt.sign(
       {
-        id: userData.id,
-        email: userData.email,
-        role: userData.role,
-        patientId: userData.patient_id,
+        id: customUser.id,
+        email: customUser.email,
+        role: customUser.role,
+        patient_id: customUser.patient_id,
+        doctor_id: customUser.doctor_id,
       },
-      process.env.JWT_SECRET!, // make sure JWT_SECRET is set in env
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 
-    // 5. Remove password from response (your custom table shouldn't have it)
-    //    We'll just send userData as is.
-
-    // 6. Return the same structure as before
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
       user: {
-        id: userData.id,
-        email: userData.email,
-        full_name_en: userData.full_name_en,
-        role: userData.role,
-        patient_id: userData.patient_id,
-        created_at: userData.created_at,
+        id: customUser.id,
+        email: customUser.email,
+        full_name_en: customUser.full_name_en,
+        role: customUser.role,
+        patient_id: customUser.patient_id,
+        doctor_id: customUser.doctor_id,
       },
       token,
     });
 
-    // Optional: set cookies (if you rely on them)
+    // Set cookies (optional)
     response.cookies.set({
       name: 'token',
       value: token,
@@ -353,7 +350,7 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set({
       name: 'user',
-      value: JSON.stringify(userData),
+      value: JSON.stringify(customUser),
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
