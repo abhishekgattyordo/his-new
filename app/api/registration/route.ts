@@ -1151,20 +1151,16 @@ async function handleStep3(data: Step3Input) {
 
     // Now, send an invitation via Supabase Auth
     // This will send an email to the user with a link to set a password.
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      patient.email,
-      {
-        options: {
-          // Where the user should be redirected after setting password
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-          // Optional: data to store in user metadata
-          data: {
-            full_name: patient.full_name_en,
-            patient_id: patientId,
-          },
-        },
-      }
-    );
+  const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+  patient.email,
+  {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    data: {
+      full_name: patient.full_name_en,
+      patient_id: patientId,
+    },
+  }
+);
 
     if (inviteError) {
       console.error('Supabase invite error:', inviteError);
