@@ -715,17 +715,68 @@ export default function SchedulePage() {
 
   const router = useRouter();
 
-  useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setDoctorId(user.id);
-      } catch (e) {
-        console.error("Failed to parse user", e);
+useEffect(() => {
+  const fetchDoctorId = async () => {
+    try {
+      console.log("🚀 Fetching doctor ID...");
+
+      const token = localStorage.getItem("accessToken");
+      console.log("🔑 Token:", token);
+
+      if (!token) {
+        console.warn("⚠️ No token found in localStorage");
+        return;
       }
+
+      const response = await fetch("/api/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("📡 API Response Status:", response.status);
+
+      const data = await response.json();
+      console.log("📦 API Response Data:", data);
+
+      if (data.success && data.user) {
+        const doctorId = data.user.doctor_id;
+        console.log("👨‍⚕️ Doctor ID:", doctorId);
+
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+        console.log("📂 Current User from localStorage:", currentUser);
+
+        const updatedUser = {
+          ...currentUser,
+          id: doctorId,
+          doctor_id: doctorId,
+        };
+
+        console.log("✏️ Updated User:", updatedUser);
+
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        console.log("💾 User saved to localStorage");
+
+        setDoctorId(doctorId);
+      } else {
+        console.warn("❌ Invalid response or user not found");
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch doctor ID:", error);
     }
-  }, []);
+  };
+
+  fetchDoctorId();
+}, []);
+
+const token = localStorage.getItem('accessToken');
+if (token) {
+  const payload = token.split('.')[1];
+  const decoded = JSON.parse(atob(payload));
+  console.log(decoded);
+} else {
+  console.log('No accessToken found');
+}
+
+
 
   const handleViewEHR = (e: React.MouseEvent, patientId: string) => {
     e.stopPropagation();

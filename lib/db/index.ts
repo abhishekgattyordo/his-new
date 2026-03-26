@@ -52,9 +52,10 @@
 // export default pool;
 
 
+import { Pool, types } from 'pg';  // ✅ import types
 
-
-import { Pool } from 'pg';
+// ✅ Override DATE type (OID 1082) to return as string (YYYY-MM-DD)
+types.setTypeParser(1082, (val: string) => val);
 
 const connectionString = process.env.DATABASE_URL;
 

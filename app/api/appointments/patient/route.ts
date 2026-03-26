@@ -130,6 +130,9 @@
 //   }
 // }
 
+
+
+
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
@@ -200,9 +203,15 @@ export async function POST(req: Request) {
 
     console.log("✅ Appointment created successfully:", result.rows[0].id);
 
+    // 🟢 FIX DATE: Convert PostgreSQL date to YYYY-MM-DD string
+    const newAppointment = result.rows[0];
+    if (newAppointment.appointment_date instanceof Date) {
+      newAppointment.appointment_date = newAppointment.appointment_date.toISOString().split('T')[0];
+    }
+
     return NextResponse.json({
       success: true,
-      data: result.rows[0],
+      data: newAppointment,   // <-- use the modified object
       message: "Appointment booked successfully"
     });
   } catch (error) {
